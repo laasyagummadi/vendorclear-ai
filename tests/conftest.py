@@ -56,6 +56,18 @@ async def setup_database():
     await test_engine.dispose()
 
 
+@pytest_asyncio.fixture(autouse=True)
+async def clean_database_tables():
+    """Clean all tables between individual tests to ensure isolated environments."""
+    from sqlalchemy import text
+    async with test_engine.begin() as conn:
+        await conn.execute(text("DELETE FROM findings"))
+        await conn.execute(text("DELETE FROM analyses"))
+        await conn.execute(text("DELETE FROM documents"))
+        await conn.execute(text("DELETE FROM vendors"))
+        await conn.execute(text("DELETE FROM users"))
+
+
 @pytest_asyncio.fixture
 async def db_session():
     """Fresh DB session for each test."""
