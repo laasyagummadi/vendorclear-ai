@@ -1,0 +1,28 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & secrets
+.env
+
+# Local upload storage
+uploads/
+
+# Local databases
+tmp-db-data/
+
+# Logs
+logs/
+*.log
+
+# Pytest cache & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.cov/
