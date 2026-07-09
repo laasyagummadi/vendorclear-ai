@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VendorClear AI — Vendor Intelligence, Clarity Assured</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;color:#fff;font-family:'Inter',sans-serif;font-size:14px}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:#000}
+::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+
+/* Layout */
+#app{display:flex;height:100vh;overflow:hidden}
+#sidebar{width:240px;flex-shrink:0;background:#080808;border-right:1px solid #181818;display:flex;flex-direction:column;padding:20px 12px}
+#content{flex:1;overflow-y:auto;padding:32px}
+
+/* Brand */
+.brand-logo{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:28px}
+.brand-dot{width:28px;height:28px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.brand-dot svg{color:#000}
+.brand-name{font-size:15px;font-weight:700;letter-spacing:-0.3px}
+.brand-tag{font-size:10px;color:#444;margin-top:1px}
+
+/* Nav */
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;color:#555;font-size:13px;font-weight:500;transition:all .15s;user-select:none;margin-bottom:2px}
+.nav-item:hover{background:#111;color:#ccc}
+.nav-item.active{background:#1a1a1a;color:#fff}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.nav-sep{height:1px;background:#181818;margin:10px 4px}
+.nav-section{font-size:10px;color:#333;text-transform:uppercase;letter-spacing:.08em;padding:6px 10px 4px}
+
+/* Cards */
+.card{background:#0a0a0a;border:1px solid #1a1a1a;border-radius:12px;padding:20px}
+.card-sm{background:#0a0a0a;border:1px solid #1a1a1a;border-radius:10px;padding:16px}
+
+/* Stat cards */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-box{background:#0a0a0a;border:1px solid #1a1a1a;border-radius:10px;padding:18px 20px}
+.stat-label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.stat-val{font-size:28px;font-weight:700;letter-spacing:-1px}
+.stat-sub{font-size:12px;color:#444;margin-top:4px}
+
+/* Charts row */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+
+/* Tables */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{padding:11px 16px;text-align:left;font-size:11px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #181818}
+.tbl td{padding:13px 16px;border-bottom:1px solid #111;font-size:13px;vertical-align:middle}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:#0f0f0f;cursor:pointer}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.badge-green{background:#052e16;color:#4ade80}
+.badge-yellow{background:#1c1003;color:#fbbf24}
+.badge-red{background:#1c0a0a;color:#f87171}
+.badge-blue{background:#0c1a2e;color:#60a5fa}
+.badge-gray{background:#111;color:#666}
+.badge-purple{background:#1a0a2e;color:#a78bfa}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:none;outline:none}
+.btn-primary{background:#fff;color:#000}
+.btn-primary:hover{background:#e8e8e8}
+.btn-ghost{background:transparent;color:#666;border:1px solid #222}
+.btn-ghost:hover{background:#111;color:#fff;border-color:#333}
+.btn-danger{background:#1c0a0a;color:#f87171;border:1px solid #2a1010}
+.btn-danger:hover{background:#2a1010}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-icon{padding:7px;border-radius:8px;background:#111;border:1px solid #222;cursor:pointer;color:#666;transition:all .15s}
+.btn-icon:hover{color:#fff;border-color:#444}
+
+/* Form elements */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:12px;font-weight:500;color:#777;margin-bottom:6px;letter-spacing:.02em}
+.form-input{width:100%;background:#0a0a0a;border:1px solid #222;color:#fff;border-radius:8px;padding:10px 14px;font-size:13px;font-family:'Inter',sans-serif;transition:border-color .15s}
+.form-input:focus{outline:none;border-color:#444;background:#111}
+.form-input::placeholder{color:#333}
+select.form-input option{background:#0a0a0a}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-box{background:#0d0d0d;border:1px solid #222;border-radius:16px;padding:28px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:20px}
+
+/* Auth screen */
+#auth-screen{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:200}
+.auth-box{width:100%;max-width:420px;padding:40px}
+.auth-logo{text-align:center;margin-bottom:32px}
+.auth-title{font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:4px}
+.auth-sub{font-size:13px;color:#444;margin-bottom:28px;text-align:center}
+.auth-tab{display:flex;background:#0a0a0a;border:1px solid #1a1a1a;border-radius:10px;padding:3px;margin-bottom:24px}
+.auth-tab-btn{flex:1;text-align:center;padding:8px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:#555;transition:all .15s}
+.auth-tab-btn.active{background:#fff;color:#000}
+
+/* Upload area */
+.upload-zone{border:2px dashed #222;border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .15s;background:#050505}
+.upload-zone:hover,.upload-zone.drag{border-color:#444;background:#0a0a0a}
+.upload-zone input{display:none}
+
+/* Page header */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.page-sub{font-size:13px;color:#555;margin-top:2px}
+
+/* Breadcrumb */
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:#444;margin-bottom:20px}
+.breadcrumb a{color:#555;cursor:pointer}
+.breadcrumb a:hover{color:#ccc}
+.breadcrumb-sep{color:#333}
+
+/* Detail sections */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.detail-item{background:#050505;border-radius:8px;padding:12px 14px}
+.detail-item-label{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.detail-item-val{font-size:13px;color:#ccc;font-weight:500}
+
+/* Findings */
+.finding-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #111}
+.finding-item:last-child{border-bottom:none}
+.finding-sev{width:70px;flex-shrink:0}
+
+/* Alert items */
+.alert-item{background:#0a0a0a;border:1px solid #181818;border-radius:10px;padding:14px 16px;margin-bottom:8px}
+.alert-item-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.alert-item-sub{font-size:12px;color:#555}
+
+/* Score ring */
+.score-ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.score-label{position:absolute;text-align:center}
+
+/* Utility */
+.flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}
+.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}.mt-6{margin-top:24px}
+.mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-4{margin-bottom:16px}.mb-6{margin-bottom:24px}
+.text-sm{font-size:12px}.text-xs{font-size:11px}.text-muted{color:#555}.text-dim{color:#333}
+.font-bold{font-weight:700}.font-semibold{font-weight:600}.font-medium{font-weight:500}
+.w-full{width:100%}.rounded-full{border-radius:9999px}
+.empty-state{text-align:center;padding:48px;color:#333}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:13px}
+.toast{position:fixed;bottom:24px;right:24px;background:#0f0f0f;border:1px solid #222;border-radius:10px;padding:12px 18px;font-size:13px;font-weight:500;z-index:999;animation:slideIn .2s ease;max-width:320px}
+.toast.success{border-color:#1a3a1a;color:#4ade80}
+.toast.error{border-color:#3a1a1a;color:#f87171}
+.toast.info{border-color:#1a2a3a;color:#60a5fa}
+@keyframes slideIn{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid #333;border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.divider{height:1px;background:#111;margin:20px 0}
+</style>
+</head>
+<body>
+
+<!-- ─── AUTH SCREEN ─────────────────────────────────────────── -->
+<div id="auth-screen">
+<div class="auth-box">
+  <div class="auth-logo">
+    <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="width:36px;height:36px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <span class="auth-title">VendorClear AI</span>
+    </div>
+    <div class="auth-sub">Vendor Intelligence, Clarity Assured</div>
+  </div>
+
+  <div class="auth-tab">
+    <div class="auth-tab-btn active" id="tab-login" onclick="switchTab('login')">Sign In</div>
+    <div class="auth-tab-btn" id="tab-register" onclick="switchTab('register')">Register</div>
+  </div>
+
+  <!-- Login form -->
+  <div id="form-login">
+    <div class="form-group">
+      <label class="form-label">Email address</label>
+      <input id="l-email" type="email" class="form-input" placeholder="you@company.com" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input id="l-password" type="password" class="form-input" placeholder="••••••••" />
+    </div>
+    <button class="btn btn-primary w-full" style="justify-content:center;padding:11px" onclick="doLogin()">
+      <span id="login-label">Sign In</span>
+    </button>
+    <div id="auth-error" style="color:#f87171;font-size:12px;text-align:center;margin-top:12px;display:none"></div>
+  </div>
+
+  <!-- Register form -->
+  <div id="form-register" style="display:none">
+    <div class="form-group">
+      <label class="form-label">Full name</label>
+      <input id="r-name" type="text" class="form-input" placeholder="Jane Smith" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email address</label>
+      <input id="r-email" type="email" class="form-input" placeholder="you@company.com" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input id="r-password" type="password" class="form-input" placeholder="••••••••" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm</label>
+        <input id="r-confirm" type="password" class="form-input" placeholder="••••••••" />
+      </div>
+    </div>
+    <button class="btn btn-primary w-full" style="justify-content:center;padding:11px" onclick="doRegister()">
+      <span id="register-label">Create Account</span>
+    </button>
+    <div id="auth-error-reg" style="color:#f87171;font-size:12px;text-align:center;margin-top:12px;display:none"></div>
+  </div>
+
+  <div style="margin-top:20px;text-align:center;font-size:11px;color:#2a2a2a">
+    Backend must be running on <span style="color:#444">http://localhost:8000</span>
+  </div>
+</div>
+</div>
+
+<!-- ─── MAIN APP ────────────────────────────────────────────── -->
+<div id="app" style="display:none">
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="brand-logo">
+      <div class="brand-dot">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">VendorClear AI</div>
+        <div class="brand-tag">Vendor Intelligence</div>
+      </div>
+    </div>
+
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" data-page="vendors" onclick="navigate('vendors')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Vendors
+    </div>
+
+    <div class="nav-sep"></div>
+    <div class="nav-section">Intelligence</div>
+    <div class="nav-item" data-page="alerts" onclick="navigate('alerts')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      Alerts
+      <span id="alert-badge" style="display:none;margin-left:auto;background:#f87171;color:#000;border-radius:20px;font-size:10px;font-weight:700;padding:1px 7px"></span>
+    </div>
+    <div class="nav-item" data-page="report" onclick="navigate('report')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Compliance Report
+    </div>
+
+    <div style="flex:1"></div>
+    <div class="nav-sep"></div>
+
+    <div id="user-pill" style="padding:10px;background:#111;border-radius:8px;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:600;color:#ccc" id="user-name-nav">Loading...</div>
+      <div style="font-size:11px;color:#444" id="user-email-nav"></div>
+    </div>
+    <div class="nav-item" onclick="logout()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <main id="content"></main>
+</div>
+
+<!-- ─── MODAL CONTAINER ────────────────────────────────────── -->
+<div id="modal-root"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONFIG & STATE
+// ═══════════════════════════════════════════════════════
+const API = (window.API_BASE || 'http://localhost:8000') + '/api/v1';
+let token = localStorage.getItem('vc_token') || '';
+let currentUser = null;
+let currentPage = 'dashboard';
+let currentVendorId = null;
+let charts = {};
+
+// ═══════════════════════════════════════════════════════
+//  API HELPER
+// ═══════════════════════════════════════════════════════
+async function api(method, path, body = null, isForm = false) {
+  const headers = {};
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  if (body && !isForm) headers['Content-Type'] = 'application/json';
+
+  const opts = { method, headers };
+  if (body) opts.body = isForm ? body : JSON.stringify(body);
+
+  try {
+    const res = await fetch(API + path, opts);
+    if (res.status === 401 || res.status === 403) { logout(); return null; }
+    const ct = res.headers.get('content-type') || '';
+    const data = ct.includes('application/json') ? await res.json() : await res.text();
+    if (!res.ok) throw { status: res.status, data };
+    return data;
+  } catch (e) {
+    if (e.status) throw e;
+    throw { status: 0, data: { detail: 'Network error — is the backend running?' } };
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
+function toast(msg, type = 'info', duration = 3500) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+// ═══════════════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.getElementById('form-login').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+  document.getElementById('auth-error').style.display = 'none';
+  document.getElementById('auth-error-reg').style.display = 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pwd = document.getElementById('l-password').value;
+  const lbl = document.getElementById('login-label');
+  const err = document.getElementById('auth-error');
+  if (!email || !pwd) { showErr(err, 'Please enter email and password'); return; }
+  lbl.innerHTML = '<span class="spinner"></span>';
+  try {
+    const res = await fetch(API + '/auth/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password: pwd })
+    });
+    const data = await res.json();
+    if (!res.ok) { showErr(err, data.detail || 'Login failed'); lbl.textContent = 'Sign In'; return; }
+    token = data.access_token;
+    localStorage.setItem('vc_token', token);
+    lbl.textContent = 'Sign In';
+    bootApp();
+  } catch(e) {
+    showErr(err, 'Cannot reach backend. Is it running on port 8000?');
+    lbl.textContent = 'Sign In';
+  }
+}
+
+async function doRegister() {
+  const name = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const pwd = document.getElementById('r-password').value;
+  const conf = document.getElementById('r-confirm').value;
+  const lbl = document.getElementById('register-label');
+  const err = document.getElementById('auth-error-reg');
+  if (!name || !email || !pwd) { showErr(err, 'All fields are required'); return; }
+  if (pwd !== conf) { showErr(err, 'Passwords do not match'); return; }
+  lbl.innerHTML = '<span class="spinner"></span>';
+  try {
+    const res = await fetch(API + '/auth/register', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ full_name: name, email, password: pwd, confirm_password: conf })
+    });
+    const data = await res.json();
+    if (!res.ok) { showErr(err, data.detail || 'Registration failed'); lbl.textContent = 'Create Account'; return; }
+    toast('Account created! Signing you in…', 'success');
+    document.getElementById('l-email').value = email;
+    document.getElementById('l-password').value = pwd;
+    lbl.textContent = 'Create Account';
+    switchTab('login');
+    await doLogin();
+  } catch(e) {
+    showErr(err, 'Cannot reach backend');
+    lbl.textContent = 'Create Account';
+  }
+}
+
+function showErr(el, msg) { el.textContent = msg; el.style.display = ''; }
+
+function logout() {
+  token = ''; currentUser = null;
+  localStorage.removeItem('vc_token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  destroyCharts();
+}
+
+async function bootApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  try {
+    currentUser = await api('GET', '/auth/me');
+    if (currentUser) {
+      document.getElementById('user-name-nav').textContent = currentUser.full_name || 'User';
+      document.getElementById('user-email-nav').textContent = currentUser.email || '';
+    }
+  } catch(e) {}
+  loadAlertBadge();
+  navigate('dashboard');
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+function navigate(page, vendorId = null) {
+  currentPage = page;
+  currentVendorId = vendorId;
+  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+  destroyCharts();
+  const content = document.getElementById('content');
+  content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px"><span class="spinner" style="width:24px;height:24px;border-width:3px"></span></div>';
+  const pages = { dashboard: renderDashboard, vendors: renderVendors, alerts: renderAlerts, report: renderReport };
+  if (page === 'vendor-detail') { renderVendorDetail(vendorId); return; }
+  if (page === 'analysis-detail') { renderAnalysisDetail(vendorId); return; }
+  if (pages[page]) pages[page]();
+}
+
+function destroyCharts() {
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
+  charts = {};
+}
+
+// ═══════════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════════
+async function renderDashboard() {
+  let summary;
+  try { summary = await api('GET', '/dashboard/summary'); }
+  catch(e) { summary = null; }
+
+  const v = summary?.vendors || {};
+  const d = summary?.documents || {};
+  const an = summary?.analyses || {};
+  const al = summary?.alerts || {};
+  const rt = summary?.risk_tiers || {};
+
+  document.getElementById('content').innerHTML = `
+    <div class="page-header">
+      <div>
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">VendorClear AI — ${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="renderDashboard()">↺ Refresh</button>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-label">Total Vendors</div>
+        <div class="stat-val">${v.total ?? '—'}</div>
+        <div class="stat-sub">${v.active ?? 0} active</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Compliance Rate</div>
+        <div class="stat-val" style="color:${(v.compliance_rate_pct||0)>=80?'#4ade80':(v.compliance_rate_pct||0)>=50?'#fbbf24':'#f87171'}">${(v.compliance_rate_pct??0).toFixed(0)}%</div>
+        <div class="stat-sub">${v.compliant ?? 0} compliant vendors</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Documents</div>
+        <div class="stat-val">${d.total ?? '—'}</div>
+        <div class="stat-sub">${d.processed ?? 0} processed</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Open Alerts</div>
+        <div class="stat-val" style="color:${(al.total||0)>0?'#fbbf24':'#4ade80'}">${al.total ?? 0}</div>
+        <div class="stat-sub">${al.expiry ?? 0} expiry · ${al.compliance ?? 0} compliance</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;margin-bottom:16px">Risk Tier Distribution</div>
+        <div style="position:relative;height:200px"><canvas id="chart-risk"></canvas></div>
+      </div>
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;margin-bottom:16px">Vendor Status Overview</div>
+        <div style="position:relative;height:200px"><canvas id="chart-status"></canvas></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;margin-bottom:16px">Document Processing</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${renderProgressBar('Processed', d.processed||0, d.total||1, '#4ade80')}
+          ${renderProgressBar('Pending', d.pending||0, d.total||1, '#fbbf24')}
+          ${renderProgressBar('Failed', d.failed||0, d.total||1, '#f87171')}
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;margin-bottom:16px">Quick Actions</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-ghost" style="justify-content:flex-start" onclick="navigate('vendors');setTimeout(()=>openCreateVendor(),300)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add New Vendor
+          </button>
+          <button class="btn btn-ghost" style="justify-content:flex-start" onclick="navigate('alerts')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+            View Alerts (${al.total||0})
+          </button>
+          <button class="btn btn-ghost" style="justify-content:flex-start" onclick="navigate('report')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16"/><polyline points="14 2 14 8 20 8"/></svg>
+            Compliance Report
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Risk tier chart
+  const riskCtx = document.getElementById('chart-risk');
+  if (riskCtx) {
+    charts['risk'] = new Chart(riskCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Low', 'Medium', 'High', 'Critical'],
+        datasets: [{ data: [rt.low||0, rt.medium||0, rt.high||0, rt.critical||0],
+          backgroundColor: ['#052e16','#1c1003','#1c0a0a','#2a0a0a'],
+          borderColor: ['#4ade80','#fbbf24','#f87171','#f43f5e'], borderWidth: 2 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '65%',
+        plugins: { legend: { position: 'bottom', labels: { color: '#555', font: { size: 11 }, boxWidth: 10, padding: 12 } } }
+      }
+    });
+  }
+
+  // Status chart
+  const statusCtx = document.getElementById('chart-status');
+  if (statusCtx) {
+    charts['status'] = new Chart(statusCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Compliant','Needs Review','Non-Compliant','Pending'],
+        datasets: [{ data: [v.compliant||0, v.needs_review||0, v.non_compliant||0, v.pending||0],
+          backgroundColor: ['#052e16','#1c1003','#1c0a0a','#111'],
+          borderColor: ['#4ade80','#fbbf24','#f87171','#333'], borderWidth: 1.5, borderRadius: 6 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { grid: { color: '#111' }, ticks: { color: '#555', font: { size: 11 } } },
+                  y: { grid: { color: '#111' }, ticks: { color: '#555', font: { size: 11 } }, beginAtZero: true } }
+      }
+    });
+  }
+}
+
+function renderProgressBar(label, val, total, color) {
+  const pct = total > 0 ? Math.round((val/total)*100) : 0;
+  return `<div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="font-size:12px;color:#555">${label}</span>
+      <span style="font-size:12px;color:#777">${val} <span style="color:#333">(${pct}%)</span></span>
+    </div>
+    <div style="height:4px;background:#111;border-radius:4px">
+      <div style="height:4px;background:${color};border-radius:4px;width:${pct}%;transition:width .4s"></div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  VENDORS LIST
+// ═══════════════════════════════════════════════════════
+async function renderVendors(filter = '') {
+  let vendors = [];
+  try { vendors = await api('GET', '/vendors?skip=0&limit=200') || []; }
+  catch(e) { vendors = []; }
+
+  const filtered = filter ? vendors.filter(v =>
+    v.name?.toLowerCase().includes(filter.toLowerCase()) ||
+    v.email?.toLowerCase().includes(filter.toLowerCase()) ||
+    v.city?.toLowerCase().includes(filter.toLowerCase())
+  ) : vendors;
+
+  document.getElementById('content').innerHTML = `
+    <div class="page-header">
+      <div>
+        <div class="page-title">Vendors</div>
+        <div class="page-sub">${vendors.length} total vendor${vendors.length !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="flex gap-2">
+        <input class="form-input" style="width:220px;padding:7px 12px" placeholder="Search vendors…"
+          value="${filter}" oninput="renderVendors(this.value)" />
+        <button class="btn btn-primary" onclick="openCreateVendor()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Vendor
+        </button>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+    ${filtered.length === 0 ? `
+      <div class="empty-state">
+        <div class="icon">🏢</div>
+        <p style="color:#555">${filter ? 'No vendors match your search.' : 'No vendors yet.'}</p>
+        ${!filter ? `<button class="btn btn-ghost btn-sm mt-4" onclick="openCreateVendor()">Add your first vendor</button>` : ''}
+      </div>
+    ` : `
+    <table class="tbl">
+      <thead><tr>
+        <th>Vendor Name</th><th>Contact</th><th>Location</th>
+        <th>Risk Tier</th><th>Status</th><th>GL Expiry</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${filtered.map(v => `
+        <tr onclick="navigate('vendor-detail','${v.id}')">
+          <td>
+            <div style="font-weight:600;color:#e0e0e0">${esc(v.name)}</div>
+            <div style="font-size:11px;color:#444;margin-top:2px">${esc(v.email||'')}</div>
+          </td>
+          <td style="color:#666">${esc(v.contact_name||'—')}</td>
+          <td style="color:#666">${esc([v.city,v.state].filter(Boolean).join(', ')||'—')}</td>
+          <td>${riskBadge(v.risk_tier)}</td>
+          <td>${statusBadge(v.status)}</td>
+          <td style="font-size:12px;color:${isExpiring(v.gl_expiry)?'#f87171':'#555'}">${fmtDate(v.gl_expiry)}</td>
+          <td style="text-align:right">
+            <span style="color:#333;font-size:18px;padding:0 8px">›</span>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`}
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+//  VENDOR DETAIL
+// ═══════════════════════════════════════════════════════
+async function renderVendorDetail(id) {
+  let vendor, docs, score;
+  try { [vendor, docs, score] = await Promise.all([
+    api('GET', `/vendors/${id}`),
+    api('GET', `/vendors/${id}/documents`),
+    api('GET', `/dashboard/vendors/${id}/score`),
+  ]); } catch(e) { vendor = null; docs = []; score = null; }
+
+  if (!vendor) {
+    document.getElementById('content').innerHTML = `<div class="empty-state"><p>Vendor not found.</p><button class="btn btn-ghost btn-sm mt-4" onclick="navigate('vendors')">Back to Vendors</button></div>`;
+    return;
+  }
+
+  const grade = score?.grade || '?';
+  const totalScore = score?.total_score ?? null;
+  const gradeColor = grade === 'A' ? '#4ade80' : grade === 'B' ? '#86efac' : grade === 'C' ? '#fbbf24' : grade === 'D' ? '#fb923c' : '#f87171';
+
+  document.getElementById('content').innerHTML = `
+    <div class="breadcrumb">
+      <a onclick="navigate('vendors')">Vendors</a>
+      <span class="breadcrumb-sep">›</span>
+      <span style="color:#888">${esc(vendor.name)}</span>
+    </div>
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">${esc(vendor.name)}</div>
+        <div class="flex gap-2 mt-1">${statusBadge(vendor.status)} ${riskBadge(vendor.risk_tier)}</div>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-ghost btn-sm" onclick="openUploadModal('${id}','${esc(vendor.name)}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload Document
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="openEditVendor('${id}')">Edit</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;margin-bottom:24px">
+      <div class="card">
+        <div style="font-size:13px;font-weight:600;color:#777;margin-bottom:14px;text-transform:uppercase;letter-spacing:.06em">Vendor Info</div>
+        <div class="detail-grid">
+          <div class="detail-item"><div class="detail-item-label">Contact</div><div class="detail-item-val">${esc(vendor.contact_name||'—')}</div></div>
+          <div class="detail-item"><div class="detail-item-label">Email</div><div class="detail-item-val">${esc(vendor.email||'—')}</div></div>
+          <div class="detail-item"><div class="detail-item-label">Phone</div><div class="detail-item-val">${esc(vendor.phone||'—')}</div></div>
+          <div class="detail-item"><div class="detail-item-label">City / State</div><div class="detail-item-val">${esc([vendor.city,vendor.state].filter(Boolean).join(', ')||'—')}</div></div>
+          <div class="detail-item"><div class="detail-item-label">GL Expiry</div><div class="detail-item-val" style="color:${isExpiring(vendor.gl_expiry)?'#f87171':'inherit'}">${fmtDate(vendor.gl_expiry)||'—'}</div></div>
+          <div class="detail-item"><div class="detail-item-label">WC Expiry</div><div class="detail-item-val" style="color:${isExpiring(vendor.wc_expiry)?'#f87171':'inherit'}">${fmtDate(vendor.wc_expiry)||'—'}</div></div>
+          <div class="detail-item" style="grid-column:span 2"><div class="detail-item-label">Diversity Types</div><div class="detail-item-val">${(vendor.diversity_types||[]).length ? vendor.diversity_types.join(', ') : '—'}</div></div>
+        </div>
+      </div>
+
+      <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+        <div style="font-size:12px;color:#444;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">Compliance Score</div>
+        <div style="font-size:64px;font-weight:800;letter-spacing:-3px;color:${gradeColor};line-height:1">${grade}</div>
+        ${totalScore !== null ? `<div style="font-size:14px;color:#555;margin-top:6px">${totalScore}/100</div>` : ''}
+        ${score?.breakdown ? `<div style="margin-top:16px;width:100%">
+          ${Object.entries(score.breakdown).map(([k,v]) => `
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:6px">
+              <span style="color:#444">${k.replace(/_/g,' ')}</span>
+              <span style="color:#666">${v}</span>
+            </div>`).join('')}
+        </div>` : ''}
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #111">
+        <div style="font-size:14px;font-weight:600">Documents (${(docs||[]).length})</div>
+        <button class="btn btn-ghost btn-sm" onclick="openUploadModal('${id}','${esc(vendor.name)}')">+ Upload</button>
+      </div>
+      ${!(docs||[]).length ? `
+        <div class="empty-state"><div class="icon">📄</div><p>No documents uploaded yet.</p></div>
+      ` : `
+      <table class="tbl">
+        <thead><tr><th>Filename</th><th>Type</th><th>Status</th><th>Size</th><th>Uploaded</th><th></th></tr></thead>
+        <tbody>
+          ${docs.map(d => `<tr onclick="loadDocAnalysis('${d.id}','${id}')">
+            <td><div style="font-weight:500">${esc(d.filename)}</div></td>
+            <td>${docTypeBadge(d.document_type)}</td>
+            <td>${docStatusBadge(d.status)}</td>
+            <td style="color:#555;font-size:12px">${fmtSize(d.file_size_bytes)}</td>
+            <td style="color:#555;font-size:12px">${fmtDate(d.created_at)}</td>
+            <td style="text-align:right"><span style="color:#333;font-size:18px;padding:0 8px">›</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`}
+    </div>
+  `;
+}
+
+async function loadDocAnalysis(docId, vendorId) {
+  // Fetch analyses for this document
+  try {
+    const analyses = await api('GET', `/vendors/${vendorId}/documents/${docId}/analyses`);
+    if (analyses && analyses.length > 0) {
+      navigate('analysis-detail', analyses[0].id);
+    } else {
+      toast('No analysis available for this document yet.', 'info');
+    }
+  } catch(e) {
+    toast('Could not load analysis.', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  ANALYSIS DETAIL
+// ═══════════════════════════════════════════════════════
+async function renderAnalysisDetail(analysisId) {
+  let analysis;
+  try { analysis = await api('GET', `/analyses/${analysisId}`); }
+  catch(e) { analysis = null; }
+
+  if (!analysis) {
+    document.getElementById('content').innerHTML = `<div class="empty-state"><p>Analysis not found.</p></div>`;
+    return;
+  }
+
+  const findings = analysis.findings || [];
+  const ef = analysis.extracted_fields || {};
+
+  document.getElementById('content').innerHTML = `
+    <div class="breadcrumb">
+      <a onclick="navigate('vendors')">Vendors</a>
+      <span class="breadcrumb-sep">›</span>
+      <a onclick="navigate('vendor-detail','${analysis.vendor_id||''}')">Vendor</a>
+      <span class="breadcrumb-sep">›</span>
+      <span style="color:#888">Analysis</span>
+    </div>
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Document Analysis</div>
+        <div class="flex gap-2 mt-1">
+          ${analysisBadge(analysis.status)}
+          <span style="font-size:12px;color:#444">Confidence: ${analysis.confidence_score ? (analysis.confidence_score*100).toFixed(0)+'%' : '—'}</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <!-- COI Fields -->
+      <div class="card">
+        <div style="font-size:13px;font-weight:600;color:#777;margin-bottom:14px;text-transform:uppercase;letter-spacing:.06em">Extracted Fields</div>
+        ${[
+          ['Insured Name', analysis.insured_name || ef.insured_name],
+          ['Insurer Name', analysis.insurer_name || ef.insurer_name],
+          ['Policy Number', analysis.policy_number || ef.policy_number],
+          ['Coverage Type', analysis.coverage_type || ef.coverage_type],
+          ['GL Limit', fmtMoney(analysis.general_liability_limit_usd || ef.general_liability_limit_usd)],
+          ['Workers Comp Limit', fmtMoney(analysis.workers_comp_limit_usd || ef.workers_comp_limit_usd)],
+          ['Auto Liability Limit', fmtMoney(analysis.auto_liability_limit_usd || ef.auto_liability_limit_usd)],
+          ['Effective Date', fmtDate(analysis.effective_date || ef.effective_date)],
+          ['Expiry Date', fmtDate(analysis.expiry_date || ef.expiry_date)],
+          ['Certificate Holder', analysis.certificate_holder || ef.certificate_holder],
+          ['Additional Insured', analysis.additional_insured != null ? (analysis.additional_insured ? 'Yes' : 'No') : '—'],
+          ['Cert Body', analysis.cert_body || ef.cert_body],
+          ['Cert Type', analysis.cert_type || ef.cert_type],
+          ['Cert Number', analysis.cert_number || ef.cert_number],
+          ['Ownership %', analysis.ownership_pct != null ? analysis.ownership_pct+'%' : '—'],
+        ].filter(([,v]) => v && v !== '—' && v !== null).map(([k,v]) => `
+          <div class="detail-item" style="margin-bottom:6px">
+            <div class="detail-item-label">${k}</div>
+            <div class="detail-item-val">${esc(String(v))}</div>
+          </div>`).join('') || '<div style="color:#333;font-size:12px">No fields extracted.</div>'}
+      </div>
+
+      <!-- Findings -->
+      <div class="card">
+        <div style="font-size:13px;font-weight:600;color:#777;margin-bottom:14px;text-transform:uppercase;letter-spacing:.06em">
+          Compliance Findings (${findings.length})
+        </div>
+        ${findings.length === 0
+          ? '<div style="color:#333;font-size:12px;text-align:center;padding:24px 0">✓ No compliance issues found</div>'
+          : findings.map(f => `
+          <div class="finding-item">
+            <div class="finding-sev">${severityBadge(f.severity)}</div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#bbb">${esc(f.rule_code||'')}</div>
+              <div style="font-size:12px;color:#555;margin-top:2px">${esc(f.message||'')}</div>
+            </div>
+          </div>`).join('')
+        }
+      </div>
+    </div>
+
+    ${analysis.raw_text ? `
+    <div class="card">
+      <div style="font-size:13px;font-weight:600;color:#777;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Raw OCR Text</div>
+      <pre style="font-size:11px;color:#444;white-space:pre-wrap;word-break:break-word;max-height:240px;overflow-y:auto;line-height:1.6">${esc(analysis.raw_text.substring(0,2000))}${analysis.raw_text.length>2000?'\n…':''}</pre>
+    </div>` : ''}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+//  ALERTS
+// ═══════════════════════════════════════════════════════
+async function renderAlerts() {
+  let alerts;
+  try { alerts = await api('GET', '/alerts?expiry_days=30'); }
+  catch(e) { alerts = { expiry_alerts: [], compliance_alerts: [], total: 0 }; }
+
+  const exp = alerts?.expiry_alerts || [];
+  const comp = alerts?.compliance_alerts || [];
+
+  document.getElementById('content').innerHTML = `
+    <div class="page-header">
+      <div>
+        <div class="page-title">Alerts</div>
+        <div class="page-sub">${(alerts?.total||0)} open alert${(alerts?.total||0)!==1?'s':''}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="renderAlerts()">↺ Refresh</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#777;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">
+          Expiry Alerts (${exp.length})
+        </div>
+        ${exp.length === 0
+          ? '<div class="card"><div class="empty-state" style="padding:24px"><div class="icon" style="font-size:24px">✓</div><p>No expiry alerts</p></div></div>'
+          : exp.map(a => `<div class="alert-item" style="border-left:3px solid ${a.days_until_expiry<=7?'#f87171':'#fbbf24'}">
+              <div class="alert-item-title">${esc(a.vendor_name)}</div>
+              <div class="alert-item-sub">${esc(a.document_type||'')} expires in <strong style="color:${a.days_until_expiry<=7?'#f87171':'#fbbf24'}">${a.days_until_expiry} days</strong></div>
+              <div class="alert-item-sub mt-1">Expires: ${fmtDate(a.expiry_date)}</div>
+            </div>`).join('')}
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#777;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">
+          Compliance Alerts (${comp.length})
+        </div>
+        ${comp.length === 0
+          ? '<div class="card"><div class="empty-state" style="padding:24px"><div class="icon" style="font-size:24px">✓</div><p>No compliance alerts</p></div></div>'
+          : comp.map(a => `<div class="alert-item" style="border-left:3px solid #f87171">
+              <div class="alert-item-title">${esc(a.vendor_name)}</div>
+              <div class="alert-item-sub">${statusBadge(a.status)}</div>
+              ${a.message ? `<div class="alert-item-sub mt-1">${esc(a.message)}</div>` : ''}
+            </div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+//  COMPLIANCE REPORT
+// ═══════════════════════════════════════════════════════
+async function renderReport() {
+  let report;
+  try { report = await api('GET', '/dashboard/compliance-report'); }
+  catch(e) { report = null; }
+
+  const vendors = report?.vendors || [];
+  const sum = report?.summary || {};
+
+  document.getElementById('content').innerHTML = `
+    <div class="page-header">
+      <div>
+        <div class="page-title">Compliance Report</div>
+        <div class="page-sub">Generated ${fmtDate(report?.report_date) || 'now'} · ${vendors.length} vendors</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="renderReport()">↺ Refresh</button>
+    </div>
+
+    <div class="stat-grid" style="margin-bottom:20px">
+      <div class="stat-box"><div class="stat-label">Total Vendors</div><div class="stat-val">${sum.total_vendors??'—'}</div></div>
+      <div class="stat-box"><div class="stat-label">Avg Score</div><div class="stat-val">${sum.avg_score!=null?sum.avg_score.toFixed(0):'—'}</div></div>
+      <div class="stat-box"><div class="stat-label">Compliant</div><div class="stat-val" style="color:#4ade80">${sum.compliant??'—'}</div></div>
+      <div class="stat-box"><div class="stat-label">Non-Compliant</div><div class="stat-val" style="color:#f87171">${sum.non_compliant??'—'}</div></div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+    ${vendors.length === 0
+      ? '<div class="empty-state"><p>No vendor data available.</p></div>'
+      : `<table class="tbl">
+          <thead><tr>
+            <th>#</th><th>Vendor</th><th>Status</th><th>Risk</th>
+            <th>Score</th><th>Grade</th><th>Documents</th><th>GL Expiry</th>
+          </tr></thead>
+          <tbody>
+            ${vendors.map((v,i) => {
+              const gc = v.grade==='A'?'#4ade80':v.grade==='B'?'#86efac':v.grade==='C'?'#fbbf24':v.grade==='D'?'#fb923c':'#f87171';
+              return `<tr onclick="navigate('vendor-detail','${v.id}')">
+                <td style="color:#333">${i+1}</td>
+                <td><div style="font-weight:600">${esc(v.name)}</div><div style="font-size:11px;color:#444">${esc(v.email||'')}</div></td>
+                <td>${statusBadge(v.status)}</td>
+                <td>${riskBadge(v.risk_tier)}</td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div style="width:60px;height:4px;background:#111;border-radius:4px">
+                      <div style="height:4px;background:${gc};border-radius:4px;width:${v.total_score||0}%"></div>
+                    </div>
+                    <span style="font-size:12px;color:#777">${v.total_score??'—'}</span>
+                  </div>
+                </td>
+                <td><span style="font-size:18px;font-weight:700;color:${gc}">${v.grade||'?'}</span></td>
+                <td style="color:#555;font-size:12px">${v.document_count??0} doc${(v.document_count||0)!==1?'s':''}</td>
+                <td style="font-size:12px;color:${isExpiring(v.gl_expiry)?'#f87171':'#555'}">${fmtDate(v.gl_expiry)||'—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`}
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+//  CREATE VENDOR MODAL
+// ═══════════════════════════════════════════════════════
+function openCreateVendor() {
+  const html = `
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal-box">
+        <div class="modal-title">Add New Vendor</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Vendor Name *</label>
+            <input id="cv-name" class="form-input" placeholder="Acme Corp" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contact Name</label>
+            <input id="cv-contact" class="form-input" placeholder="Jane Smith" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email *</label>
+            <input id="cv-email" class="form-input" type="email" placeholder="contact@vendor.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input id="cv-phone" class="form-input" placeholder="555-0100" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">City</label>
+            <input id="cv-city" class="form-input" placeholder="Dallas" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">State</label>
+            <input id="cv-state" class="form-input" placeholder="TX" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">GL Expiry</label>
+            <input id="cv-gl" class="form-input" type="date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">WC Expiry</label>
+            <input id="cv-wc" class="form-input" type="date" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Diversity Types (comma-separated, e.g. MBE, WBE)</label>
+          <input id="cv-diversity" class="form-input" placeholder="MBE, WBE" />
+        </div>
+        <div id="cv-error" style="color:#f87171;font-size:12px;margin-bottom:10px;display:none"></div>
+        <div class="flex gap-2" style="justify-content:flex-end">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="submitCreateVendor()">
+            <span id="cv-label">Create Vendor</span>
+          </button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('modal-root').innerHTML = html;
+}
+
+async function submitCreateVendor() {
+  const name = document.getElementById('cv-name').value.trim();
+  const email = document.getElementById('cv-email').value.trim();
+  const err = document.getElementById('cv-error');
+  if (!name || !email) { err.textContent = 'Name and email are required'; err.style.display=''; return; }
+
+  const diversityRaw = document.getElementById('cv-diversity').value.trim();
+  const diversity = diversityRaw ? diversityRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
+
+  const payload = {
+    name, email,
+    contact_name: document.getElementById('cv-contact').value.trim() || undefined,
+    phone: document.getElementById('cv-phone').value.trim() || undefined,
+    city: document.getElementById('cv-city').value.trim() || undefined,
+    state: document.getElementById('cv-state').value.trim() || undefined,
+    zip_code: '00000',
+    gl_expiry: document.getElementById('cv-gl').value || undefined,
+    wc_expiry: document.getElementById('cv-wc').value || undefined,
+    diversity_types: diversity,
+  };
+
+  const lbl = document.getElementById('cv-label');
+  lbl.innerHTML = '<span class="spinner"></span>';
+  try {
+    await api('POST', '/vendors', payload);
+    closeModal();
+    toast('Vendor created successfully!', 'success');
+    navigate('vendors');
+  } catch(e) {
+    err.textContent = e.data?.detail || 'Failed to create vendor';
+    err.style.display = '';
+    lbl.textContent = 'Create Vendor';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  EDIT VENDOR MODAL
+// ═══════════════════════════════════════════════════════
+async function openEditVendor(id) {
+  let v;
+  try { v = await api('GET', `/vendors/${id}`); } catch(e) { return; }
+  if (!v) return;
+
+  const html = `
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal-box">
+        <div class="modal-title">Edit Vendor</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Vendor Name</label>
+            <input id="ev-name" class="form-input" value="${esc(v.name||'')}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contact Name</label>
+            <input id="ev-contact" class="form-input" value="${esc(v.contact_name||'')}" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input id="ev-email" class="form-input" type="email" value="${esc(v.email||'')}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input id="ev-phone" class="form-input" value="${esc(v.phone||'')}" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">GL Expiry</label>
+            <input id="ev-gl" class="form-input" type="date" value="${v.gl_expiry||''}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">WC Expiry</label>
+            <input id="ev-wc" class="form-input" type="date" value="${v.wc_expiry||''}" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Diversity Types (comma-separated)</label>
+          <input id="ev-diversity" class="form-input" value="${(v.diversity_types||[]).join(', ')}" />
+        </div>
+        <div id="ev-error" style="color:#f87171;font-size:12px;margin-bottom:10px;display:none"></div>
+        <div class="flex gap-2" style="justify-content:flex-end">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="submitEditVendor('${id}')">Save Changes</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('modal-root').innerHTML = html;
+}
+
+async function submitEditVendor(id) {
+  const diversityRaw = document.getElementById('ev-diversity').value.trim();
+  const payload = {
+    name: document.getElementById('ev-name').value.trim(),
+    email: document.getElementById('ev-email').value.trim(),
+    contact_name: document.getElementById('ev-contact').value.trim() || undefined,
+    phone: document.getElementById('ev-phone').value.trim() || undefined,
+    gl_expiry: document.getElementById('ev-gl').value || undefined,
+    wc_expiry: document.getElementById('ev-wc').value || undefined,
+    diversity_types: diversityRaw ? diversityRaw.split(',').map(s=>s.trim()).filter(Boolean) : [],
+  };
+  try {
+    await api('PUT', `/vendors/${id}`, payload);
+    closeModal();
+    toast('Vendor updated!', 'success');
+    navigate('vendor-detail', id);
+  } catch(e) {
+    const err = document.getElementById('ev-error');
+    err.textContent = e.data?.detail || 'Failed to update vendor';
+    err.style.display = '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  UPLOAD DOCUMENT MODAL
+// ═══════════════════════════════════════════════════════
+function openUploadModal(vendorId, vendorName) {
+  const html = `
+    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+      <div class="modal-box">
+        <div class="modal-title">Upload Document</div>
+        <div style="font-size:13px;color:#555;margin-bottom:16px">Vendor: <strong style="color:#ccc">${esc(vendorName)}</strong></div>
+
+        <div class="form-group">
+          <label class="form-label">Document Type Hint</label>
+          <select id="up-type" class="form-input">
+            <option value="">Auto-detect</option>
+            <option value="COI">Certificate of Insurance (COI)</option>
+            <option value="DIVERSITY_CERT">Diversity Certificate</option>
+          </select>
+        </div>
+
+        <div class="upload-zone" id="up-zone" onclick="document.getElementById('up-file').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event)">
+          <input type="file" id="up-file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.docx"
+            onchange="handleFileSelect(event)" />
+          <div id="up-zone-content">
+            <div style="font-size:28px;margin-bottom:8px">📄</div>
+            <div style="font-size:13px;color:#555">Drag & drop or click to choose</div>
+            <div style="font-size:11px;color:#333;margin-top:4px">PDF, JPEG, PNG, TIFF, DOCX · Max 20MB</div>
+          </div>
+        </div>
+
+        <div id="up-error" style="color:#f87171;font-size:12px;margin-top:10px;display:none"></div>
+
+        <div class="flex gap-2 mt-4" style="justify-content:flex-end">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary" id="up-btn" onclick="submitUpload('${vendorId}')">
+            <span id="up-label">Upload & Analyze</span>
+          </button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('modal-root').innerHTML = html;
+}
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (file) showFilePreview(file);
+}
+function handleDrop(event) {
+  event.preventDefault();
+  document.getElementById('up-zone').classList.remove('drag');
+  const file = event.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('up-file').files = dt.files;
+    showFilePreview(file);
+  }
+}
+function showFilePreview(file) {
+  document.getElementById('up-zone-content').innerHTML = `
+    <div style="font-size:24px;margin-bottom:6px">📎</div>
+    <div style="font-size:13px;color:#ccc;font-weight:500">${esc(file.name)}</div>
+    <div style="font-size:11px;color:#444;margin-top:2px">${fmtSize(file.size)}</div>`;
+}
+
+async function submitUpload(vendorId) {
+  const file = document.getElementById('up-file').files[0];
+  const err = document.getElementById('up-error');
+  if (!file) { err.textContent = 'Please select a file'; err.style.display=''; return; }
+
+  const lbl = document.getElementById('up-label');
+  const btn = document.getElementById('up-btn');
+  lbl.innerHTML = '<span class="spinner"></span> Uploading & Analyzing…';
+  btn.disabled = true;
+
+  const formData = new FormData();
+  formData.append('file', file);
+  const hint = document.getElementById('up-type').value;
+  if (hint) formData.append('doc_type_hint', hint);
+
+  try {
+    const result = await api('POST', `/vendors/${vendorId}/documents`, formData, true);
+    closeModal();
+    toast('Document uploaded and analyzed!', 'success');
+    navigate('vendor-detail', vendorId);
+  } catch(e) {
+    err.textContent = e.data?.detail || 'Upload failed';
+    err.style.display = '';
+    lbl.textContent = 'Upload & Analyze';
+    btn.disabled = false;
+  }
+}
+
+function closeModal() {
+  document.getElementById('modal-root').innerHTML = '';
+}
+
+// ═══════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+  catch(e) { return String(d); }
+}
+
+function fmtSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes+'B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1)+'KB';
+  return (bytes/(1024*1024)).toFixed(1)+'MB';
+}
+
+function fmtMoney(v) {
+  if (v == null) return '—';
+  return '$'+Number(v).toLocaleString();
+}
+
+function isExpiring(dateStr, days = 30) {
+  if (!dateStr) return false;
+  const diff = (new Date(dateStr) - new Date()) / (1000*60*60*24);
+  return diff >= 0 && diff <= days;
+}
+
+function statusBadge(s) {
+  const map = {
+    'ACTIVE':'badge-green','COMPLIANT':'badge-green',
+    'NEEDS_REVIEW':'badge-yellow','PENDING':'badge-gray',
+    'INACTIVE':'badge-gray','SUSPENDED':'badge-red','NON_COMPLIANT':'badge-red'
+  };
+  return `<span class="badge ${map[s]||'badge-gray'}">${s||'—'}</span>`;
+}
+
+function riskBadge(r) {
+  const map = {'LOW':'badge-green','MEDIUM':'badge-yellow','HIGH':'badge-red','CRITICAL':'badge-red','UNKNOWN':'badge-gray'};
+  return `<span class="badge ${map[r]||'badge-gray'}">${r||'—'}</span>`;
+}
+
+function docTypeBadge(t) {
+  const map = {'COI':'badge-blue','DIVERSITY_CERT':'badge-purple','UNKNOWN':'badge-gray'};
+  return `<span class="badge ${map[t]||'badge-gray'}">${t||'—'}</span>`;
+}
+
+function docStatusBadge(s) {
+  const map = {'PROCESSED':'badge-green','PROCESSING':'badge-yellow','PENDING':'badge-gray','FAILED':'badge-red'};
+  return `<span class="badge ${map[s]||'badge-gray'}">${s||'—'}</span>`;
+}
+
+function analysisBadge(s) {
+  const map = {'COMPLIANT':'badge-green','NEEDS_REVIEW':'badge-yellow','NON_COMPLIANT':'badge-red'};
+  return `<span class="badge ${map[s]||'badge-gray'}">${s||'—'}</span>`;
+}
+
+function severityBadge(s) {
+  const map = {'CRITICAL':'badge-red','HIGH':'badge-red','MEDIUM':'badge-yellow','LOW':'badge-blue'};
+  return `<span class="badge ${map[s]||'badge-gray'}">${s||'—'}</span>`;
+}
+
+async function loadAlertBadge() {
+  try {
+    const alerts = await api('GET', '/alerts?expiry_days=30');
+    const total = alerts?.total || 0;
+    const badge = document.getElementById('alert-badge');
+    if (badge) {
+      badge.textContent = total;
+      badge.style.display = total > 0 ? '' : 'none';
+    }
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+if (token) {
+  bootApp();
+} else {
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+</script>
+</body>
+</html>

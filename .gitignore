@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment variables (NEVER commit)
+.env
+.env.local
+.env.production
+*.env
+
+# SQLite databases (dev artifact)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Node / React
+node_modules/
+npm-debug.log*
+dist/
+.vite/
+
+# Uploads (runtime)
+backend/uploads/
+uploads/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+coverage/
+htmlcov/
+.coverage
+
+# Alembic env (has secrets)
+# alembic.ini is fine to commit (no secrets)
+
+# Temp / scratch files
+tmp/
+temp/
+diagnose.py
+*.zip
+ziUzQShM/
+VendorClearAI/
