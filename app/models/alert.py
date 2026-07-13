@@ -1,10 +1,10 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.sql import func
 
-from app.models.base import BaseModel
+from app.models.base import Base
 
 
-class Alert(BaseModel):
+class Alert(Base):
     __tablename__ = "alerts"
 
     id = Column(Integer, primary_key=True, index=True)

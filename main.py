@@ -66,6 +66,16 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+from app.api.v1 import documents
+from app.controllers import (
+    vendor_policy,
+    vendor_diversity_certificate,
+    reports,
+    dashboard,
+    compliance,
+    alerts
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -81,16 +91,27 @@ register_exception_handlers(app)
 # ── Routers ───────────────────────────────────────────────────
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
 app.include_router(vendors.router, prefix=settings.api_v1_prefix)
+app.include_router(documents.router, prefix=settings.api_v1_prefix)
+app.include_router(vendor_policy.router)
+app.include_router(vendor_diversity_certificate.router)
+app.include_router(reports.router)
+app.include_router(dashboard.router)
+app.include_router(compliance.router)
+app.include_router(alerts.router)
+
+
+from fastapi.responses import HTMLResponse
+import os
 
 
 # ── Root & health ─────────────────────────────────────────────
-@app.get("/", tags=["root"])
+@app.get("/", response_class=HTMLResponse, tags=["root"])
 async def root():
-    return {
-        "service": settings.app_name,
-        "version": "1.0.0",
-        "docs": "/api/docs",
-    }
+    ui_path = os.path.join(os.path.dirname(__file__), "vendorclear-app.html")
+    if os.path.exists(ui_path):
+        with open(ui_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read(), status_code=200)
+    return HTMLResponse(content="<h1>VendorClear AI Backend is running</h1><p>vendorclear-app.html not found</p>", status_code=200)
 
 
 @app.get("/api/health", tags=["health"])

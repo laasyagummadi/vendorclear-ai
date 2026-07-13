@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String, Date
 
-from app.models.base import BaseModel
+from app.models.base import Base
 
 
-class VendorPolicy(BaseModel):
+class VendorPolicy(Base):
     __tablename__ = "vendor_policies"
 
     id = Column(Integer, primary_key=True, index=True)

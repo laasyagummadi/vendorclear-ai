@@ -11,13 +11,12 @@ from main import app
 from app.database import get_db
 from app.models.base import Base
 
-# ── In-memory SQLite for tests (no MySQL needed) ──────────────
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+# ── File-based SQLite for tests (shares state between sync & async) ──
+TEST_DATABASE_URL = "sqlite+aiosqlite:///test.db"
 
 test_engine = create_async_engine(
     TEST_DATABASE_URL,
     connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
     echo=False,
 )
 
@@ -29,8 +28,22 @@ TestSessionLocal = async_sessionmaker(
     autocommit=False,
 )
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-# ── Override DB dependency ────────────────────────────────────
+sync_test_engine = create_engine(
+    "sqlite:///test.db",
+    connect_args={"check_same_thread": False},
+)
+SyncTestSessionLocal = sessionmaker(
+    bind=sync_test_engine,
+    expire_on_commit=False,
+    autoflush=False,
+    autocommit=False,
+)
+
+
+# ── Override DB dependencies ──────────────────────────────────
 async def override_get_db():
     async with TestSessionLocal() as session:
         try:
@@ -41,19 +54,46 @@ async def override_get_db():
             raise
 
 
+def override_get_sync_db():
+    db = SyncTestSessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+from app.database import get_sync_db
 app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_sync_db] = override_get_sync_db
 
 
 # ── Session-scoped fixtures ───────────────────────────────────
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_database():
     """Create all tables once per test session."""
+    import os
+    if os.path.exists("test.db"):
+        try:
+            os.remove("test.db")
+        except Exception:
+            pass
+
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     await test_engine.dispose()
+    
+    if os.path.exists("test.db"):
+        try:
+            os.remove("test.db")
+        except Exception:
+            pass
 
 
 @pytest_asyncio.fixture(autouse=True)

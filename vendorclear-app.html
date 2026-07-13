@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VendorClear AI — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── RESET & BASE ─────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000;
+  --bg1:#080808;
+  --bg2:#0f0f0f;
+  --bg3:#161616;
+  --bg4:#1e1e1e;
+  --border:rgba(255,255,255,.07);
+  --border-hover:rgba(255,255,255,.14);
+  --text:#fff;
+  --text-2:rgba(255,255,255,.55);
+  --text-3:rgba(255,255,255,.3);
+  --accent:#fff;
+  --green:#22c55e;
+  --amber:#f59e0b;
+  --red:#ef4444;
+  --blue:#3b82f6;
+  --sidebar-w:240px;
+  --sidebar-collapsed:60px;
+  --topnav-h:58px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;overflow:hidden}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:99px}
+
+/* ── LAYOUT ─────────────────────────────────── */
+.app{display:flex;height:100vh;width:100vw;overflow:hidden}
+
+/* ── SIDEBAR ─────────────────────────────────── */
+.sidebar{
+  width:var(--sidebar-w);
+  background:var(--bg1);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  transition:width .25s cubic-bezier(.4,0,.2,1);
+  flex-shrink:0;
+  z-index:100;
+  position:relative;
+  overflow:hidden;
+}
+.sidebar.collapsed{width:var(--sidebar-collapsed)}
+
+.sidebar-logo{
+  height:var(--topnav-h);
+  display:flex;align-items:center;gap:10px;
+  padding:0 16px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.logo-mark{
+  width:30px;height:30px;border-radius:8px;
+  background:#fff;display:grid;place-items:center;
+  font-size:14px;font-weight:900;color:#000;flex-shrink:0;
+}
+.logo-text{
+  font-size:13px;font-weight:800;color:#fff;
+  white-space:nowrap;letter-spacing:-.3px;
+  transition:opacity .2s;
+}
+.sidebar.collapsed .logo-text{opacity:0;pointer-events:none}
+
+.sidebar-toggle{
+  position:absolute;top:16px;right:12px;
+  width:24px;height:24px;border-radius:6px;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--border);
+  display:grid;place-items:center;
+  color:var(--text-3);font-size:12px;
+  transition:background .2s,color .2s;
+  cursor:pointer;
+}
+.sidebar-toggle:hover{background:rgba(255,255,255,.12);color:#fff}
+
+.sidebar-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:10px 8px}
+
+.nav-section-label{
+  font-size:10px;font-weight:700;
+  color:var(--text-3);text-transform:uppercase;letter-spacing:.8px;
+  padding:12px 8px 6px;
+  white-space:nowrap;
+  transition:opacity .2s;
+}
+.sidebar.collapsed .nav-section-label{opacity:0}
+
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:9px;
+  color:var(--text-2);font-size:13px;font-weight:500;
+  cursor:pointer;white-space:nowrap;
+  transition:background .15s,color .15s;
+  position:relative;
+  margin-bottom:2px;
+}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.1);color:#fff}
+.nav-item.active .nav-icon{color:#fff}
+.nav-icon{width:18px;height:18px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.nav-label{transition:opacity .2s}
+.sidebar.collapsed .nav-label{opacity:0;pointer-events:none}
+
+.nav-badge{
+  margin-left:auto;
+  background:var(--red);color:#fff;
+  font-size:10px;font-weight:700;
+  padding:1px 6px;border-radius:99px;
+  transition:opacity .2s;
+}
+.sidebar.collapsed .nav-badge{opacity:0}
+
+.sidebar-footer{
+  padding:12px 8px;
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+}
+
+/* ── MAIN CONTENT ─────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ── TOP NAV ─────────────────────────────────── */
+.topnav{
+  height:var(--topnav-h);
+  background:rgba(8,8,8,.95);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;
+  padding:0 20px;
+  flex-shrink:0;
+  position:relative;z-index:50;
+}
+.topnav-title{font-size:15px;font-weight:700;color:#fff;margin-right:4px}
+.topnav-breadcrumb{font-size:13px;color:var(--text-3);display:flex;align-items:center;gap:4px}
+
+.topnav-search{
+  margin-left:auto;
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:9px;padding:7px 12px;
+  cursor:pointer;transition:border-color .2s;
+  min-width:200px;
+}
+.topnav-search:hover{border-color:var(--border-hover)}
+.topnav-search-text{font-size:13px;color:var(--text-3);flex:1}
+.topnav-search-kbd{
+  font-size:10px;color:var(--text-3);
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--border);
+  border-radius:4px;padding:1px 5px;
+  white-space:nowrap;
+}
+.topnav-actions{display:flex;align-items:center;gap:6px}
+.topnav-btn{
+  width:34px;height:34px;border-radius:8px;
+  background:transparent;border:1px solid var(--border);
+  display:grid;place-items:center;color:var(--text-2);
+  transition:background .15s,color .15s,border-color .15s;
+  position:relative;
+}
+.topnav-btn:hover{background:var(--bg3);color:#fff;border-color:var(--border-hover)}
+.topnav-notif-dot{
+  position:absolute;top:5px;right:5px;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--red);border:1.5px solid var(--bg1);
+}
+.topnav-avatar{
+  width:34px;height:34px;border-radius:9px;
+  background:rgba(255,255,255,.12);
+  border:1px solid var(--border);
+  display:grid;place-items:center;
+  font-size:13px;font-weight:700;color:#fff;
+  cursor:pointer;
+}
+
+/* ── PAGE CONTENT ─────────────────────────────── */
+.page-wrap{flex:1;overflow-y:auto;overflow-x:hidden}
+.page{display:none;padding:24px}
+.page.active{display:block}
+
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:22px;font-weight:800;letter-spacing:-.5px;color:#fff;margin-bottom:4px}
+.page-header p{font-size:13px;color:var(--text-2)}
+
+/* ── STAT CARDS ─────────────────────────────── */
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:14px;
+  margin-bottom:24px;
+}
+.stat-card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:18px;
+  transition:border-color .2s,transform .2s;
+  cursor:default;
+}
+.stat-card:hover{border-color:var(--border-hover);transform:translateY(-1px)}
+.stat-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.stat-card-label{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px}
+.stat-card-icon{
+  width:32px;height:32px;border-radius:8px;
+  display:grid;place-items:center;font-size:14px;
+}
+.stat-card-value{font-size:28px;font-weight:900;letter-spacing:-1px;color:#fff;line-height:1;margin-bottom:6px}
+.stat-card-sub{font-size:12px;color:var(--text-3);display:flex;align-items:center;gap:5px}
+.stat-delta{
+  display:inline-flex;align-items:center;gap:2px;
+  font-size:11px;font-weight:600;padding:1px 5px;border-radius:5px;
+}
+.delta-up{background:rgba(34,197,94,.1);color:#22c55e}
+.delta-down{background:rgba(239,68,68,.1);color:#ef4444}
+.delta-neutral{background:rgba(255,255,255,.06);color:var(--text-3)}
+
+/* ── CHARTS ROW ─────────────────────────────── */
+.charts-row{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:24px}
+.chart-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  padding:20px;
+}
+.chart-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.chart-card-title{font-size:14px;font-weight:700;color:#fff}
+.chart-card-sub{font-size:12px;color:var(--text-3);margin-top:2px}
+.chart-legend{display:flex;gap:14px}
+.legend-dot{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2)}
+.legend-dot::before{content:'';width:8px;height:8px;border-radius:2px;display:inline-block}
+
+/* ── DATA TABLE ─────────────────────────────── */
+.data-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;margin-bottom:24px;
+}
+.data-card-header{
+  padding:16px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+}
+.data-card-title{font-size:14px;font-weight:700;color:#fff}
+.btn-sm{
+  padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;
+  border:1px solid var(--border);color:var(--text-2);
+  background:transparent;transition:all .15s;
+}
+.btn-sm:hover{background:var(--bg3);color:#fff;border-color:var(--border-hover)}
+.btn-primary-sm{
+  padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;
+  background:#fff;color:#000;border:none;transition:all .15s;
+}
+.btn-primary-sm:hover{background:#e5e5e5}
+
+table{width:100%;border-collapse:collapse}
+thead th{
+  padding:10px 20px;text-align:left;
+  font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+tbody tr{transition:background .15s;cursor:default}
+tbody tr:hover{background:rgba(255,255,255,.025)}
+tbody td{padding:13px 20px;font-size:13px;color:var(--text-2);border-bottom:1px solid rgba(255,255,255,.04)}
+tbody tr:last-child td{border-bottom:none}
+.td-name{color:#fff;font-weight:500}
+
+/* ── BADGES ─────────────────────────────────── */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;
+  white-space:nowrap;
+}
+.badge-green{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.2)}
+.badge-amber{background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2)}
+.badge-red{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2)}
+.badge-gray{background:rgba(255,255,255,.06);color:var(--text-2);border:1px solid var(--border)}
+.badge-blue{background:rgba(59,130,246,.1);color:#60a5fa;border:1px solid rgba(59,130,246,.2)}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* ── RISK METER ─────────────────────────────── */
+.risk-meter{margin:10px 0}
+.risk-bar-track{height:6px;background:var(--bg4);border-radius:99px;overflow:hidden;margin:8px 0}
+.risk-bar-fill{height:100%;border-radius:99px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+
+/* ── BOTTOM ROW ─────────────────────────────── */
+.bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+
+/* ── ALERT LIST ─────────────────────────────── */
+.alert-item{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:13px 20px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  transition:background .15s;
+}
+.alert-item:hover{background:rgba(255,255,255,.025)}
+.alert-item:last-child{border-bottom:none}
+.alert-dot{
+  width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;
+}
+.alert-content{flex:1;min-width:0}
+.alert-title{font-size:13px;font-weight:500;color:#fff;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alert-meta{font-size:11px;color:var(--text-3)}
+
+/* ── QUICK ACTIONS ─────────────────────────────── */
+.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qa-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;border-radius:10px;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--text-2);font-size:13px;font-weight:500;
+  transition:all .15s;text-align:left;
+}
+.qa-btn:hover{background:var(--bg4);border-color:var(--border-hover);color:#fff}
+.qa-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;font-size:14px}
+
+/* ── COMPLIANCE SCORE RING ─────────────────────── */
+.score-ring-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:10px 0;
+}
+.score-ring-svg{transform:rotate(-90deg)}
+.score-ring-bg{fill:none;stroke:var(--bg4);stroke-width:10}
+.score-ring-fill{fill:none;stroke:#fff;stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)}
+.score-ring-num{font-size:32px;font-weight:900;color:#fff;letter-spacing:-1px}
+.score-ring-label{font-size:11px;color:var(--text-3);margin-top:4px}
+
+/* ── COMMAND PALETTE ─────────────────────────── */
+.cmd-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  backdrop-filter:blur(8px);z-index:1000;
+  display:none;align-items:flex-start;justify-content:center;
+  padding-top:15vh;
+}
+.cmd-overlay.open{display:flex}
+.cmd-box{
+  width:580px;max-width:90vw;
+  background:#111;border:1px solid rgba(255,255,255,.14);
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 24px 80px rgba(0,0,0,.8);
+}
+.cmd-input-wrap{display:flex;align-items:center;gap:10px;padding:16px}
+.cmd-icon{color:var(--text-3);font-size:16px;flex-shrink:0}
+.cmd-input{
+  flex:1;background:transparent;border:none;outline:none;
+  font-size:16px;color:#fff;
+}
+.cmd-input::placeholder{color:var(--text-3)}
+.cmd-divider{height:1px;background:var(--border);margin:0 16px}
+.cmd-results{max-height:320px;overflow-y:auto;padding:8px}
+.cmd-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:9px;
+  cursor:pointer;transition:background .1s;color:var(--text-2);
+}
+.cmd-item:hover,.cmd-item.focused{background:rgba(255,255,255,.07);color:#fff}
+.cmd-item-icon{width:30px;height:30px;border-radius:7px;background:var(--bg3);display:grid;place-items:center;font-size:13px;flex-shrink:0}
+.cmd-item-name{font-size:13px;font-weight:500}
+.cmd-item-desc{font-size:11px;color:var(--text-3);margin-top:1px}
+.cmd-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:14px;align-items:center}
+.cmd-hint{font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px}
+.cmd-key{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;color:var(--text-2)}
+
+/* ── TOAST ─────────────────────────────────── */
+.toast-container{
+  position:fixed;bottom:24px;right:24px;z-index:2000;
+  display:flex;flex-direction:column;gap:8px;
+}
+.toast{
+  display:flex;align-items:center;gap:10px;
+  background:#111;border:1px solid var(--border);
+  border-radius:11px;padding:12px 16px;
+  min-width:280px;max-width:360px;
+  box-shadow:0 8px 32px rgba(0,0,0,.6);
+  animation:slideIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+.toast.out{animation:slideOut .25s ease forwards}
+@keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+@keyframes slideOut{to{opacity:0;transform:translateX(40px)}}
+.toast-icon{font-size:16px;flex-shrink:0}
+.toast-msg{font-size:13px;font-weight:500;color:#fff;flex:1}
+.toast-close{color:var(--text-3);font-size:16px;cursor:pointer;transition:color .15s}
+.toast-close:hover{color:#fff}
+
+/* ── SKELETON ─────────────────────────────── */
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.skeleton{
+  background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 37%,var(--bg3) 63%);
+  background-size:400px 100%;
+  animation:shimmer 1.4s ease infinite;
+  border-radius:6px;
+}
+
+/* ── PLACEHOLDER PAGES ─────────────────────── */
+.coming-soon{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:60vh;text-align:center;
+}
+.coming-soon-icon{font-size:48px;margin-bottom:20px;opacity:.4}
+.coming-soon h2{font-size:20px;font-weight:800;color:#fff;margin-bottom:8px}
+.coming-soon p{font-size:14px;color:var(--text-3);max-width:360px}
+
+/* ── MISC ─────────────────────────────────── */
+.divider{height:1px;background:var(--border);margin:0 0 24px}
+.flex{display:flex}.items-center{align-items:center}.gap-2{gap:8px}.gap-3{gap:12px}.ml-auto{margin-left:auto}
+.text-sm{font-size:12px}.text-muted{color:var(--text-3)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.page.active>*{animation:fadeIn .3s ease both}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">✦</div>
+      <span class="logo-text">VendorClear AI</span>
+      <button class="sidebar-toggle" onclick="toggleSidebar()" style="margin-left:auto" title="Collapse">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 2L4 6L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+
+      <div class="nav-item active" onclick="navigate('dashboard',this)" data-page="dashboard">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 1116 0A8 8 0 012 10zm8-4a1 1 0 011 1v3.586l2.707 2.707a1 1 0 01-1.414 1.414l-3-3A1 1 0 019 11V7a1 1 0 011-1z" clip-rule="evenodd" fill-rule="evenodd"/></svg>
+        <span class="nav-label">Dashboard</span>
+      </div>
+
+      <div class="nav-item" onclick="navigate('vendors',this)" data-page="vendors">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+        <span class="nav-label">Vendor Directory</span>
+      </div>
+
+      <div class="nav-item" onclick="navigate('upload',this)" data-page="upload">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+        <span class="nav-label">Upload Center</span>
+      </div>
+
+      <div class="nav-item" onclick="navigate('analysis',this)" data-page="analysis">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 2a6 6 0 110 12A6 6 0 0110 4zm0 1a1 1 0 00-1 1v4a1 1 0 00.553.894l3 1.5a1 1 0 10.894-1.788L12 9.382V6a1 1 0 00-1-1z"/></svg>
+        <span class="nav-label">AI Analysis</span>
+      </div>
+
+      <div class="nav-section-label">Compliance</div>
+
+      <div class="nav-item" onclick="navigate('reports',this)" data-page="reports">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+        <span class="nav-label">Reports</span>
+      </div>
+
+      <div class="nav-item" onclick="navigate('alerts',this)" data-page="alerts">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+        <span class="nav-label">Alerts</span>
+        <span class="nav-badge" id="alerts-badge">6</span>
+      </div>
+
+      <div class="nav-section-label">Insights</div>
+
+      <div class="nav-item" onclick="navigate('analytics',this)" data-page="analytics">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+        <span class="nav-label">Analytics</span>
+      </div>
+
+      <div class="nav-section-label">System</div>
+
+      <div class="nav-item" onclick="navigate('settings',this)" data-page="settings">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+        <span class="nav-label">Settings</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="nav-item" style="margin-bottom:0" onclick="window.location.href='vendorclear-landing.html'">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/></svg>
+        <span class="nav-label">Back to Landing</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div class="main">
+
+    <!-- TOP NAV -->
+    <nav class="topnav">
+      <div>
+        <div class="topnav-title" id="topnav-title">Dashboard</div>
+        <div class="topnav-breadcrumb">
+          <span>VendorClear AI</span>
+          <span>›</span>
+          <span id="topnav-sub">Overview</span>
+        </div>
+      </div>
+
+      <div class="topnav-search" onclick="openCmd()">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="rgba(255,255,255,.3)"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+        <span class="topnav-search-text">Search vendors, reports…</span>
+        <span class="topnav-search-kbd">Ctrl K</span>
+      </div>
+
+        <div class="topnav-actions">
+        <button class="topnav-btn" title="Refresh" onclick="bootApp().then(()=>showToast('Data refreshed','✓'))">
+          <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+        </button>
+        <button class="topnav-btn" title="Notifications" onclick="navigate('alerts',null)">
+          <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+          <span class="topnav-notif-dot"></span>
+        </button>
+
+        <!-- User avatar with dropdown -->
+        <div style="position:relative">
+          <div id="user-avatar" class="topnav-avatar" title="Account" onclick="toggleUserMenu()" style="cursor:pointer;user-select:none">?</div>
+          <div id="user-menu" style="display:none;position:absolute;right:0;top:calc(100% + 8px);background:#161616;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:8px;min-width:180px;z-index:1000;box-shadow:0 16px 40px rgba(0,0,0,.6)">
+            <div id="user-menu-email" style="padding:8px 12px;font-size:11px;color:rgba(255,255,255,.35);border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:6px">—</div>
+            <button onclick="navigate('settings',null);document.getElementById('user-menu').style.display='none'" style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:rgba(255,255,255,.7);background:none;border:none;cursor:pointer;border-radius:7px" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='none'">⚙️ Settings</button>
+            <button onclick="doSignOut()" style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#ef4444;background:none;border:none;cursor:pointer;border-radius:7px" onmouseover="this.style.background='rgba(239,68,68,.08)'" onmouseout="this.style.background='none'">→ Sign Out</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ══ PAGE CONTENT ══ -->
+    <div class="page-wrap">
+
+      <!-- ════ DASHBOARD ════ -->
+      <div id="page-dashboard" class="page active">
+        <div class="page-header">
+          <h1>Dashboard</h1>
+          <p>Real-time compliance overview · Last updated just now</p>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="stats-grid">
+
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <span class="stat-card-label">Compliance Score</span>
+              <div class="stat-card-icon" style="background:rgba(34,197,94,.1)">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="#22c55e"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+            <div class="stat-card-value"><span class="counter" data-target="40">0</span>%</div>
+            <div class="risk-bar-track">
+              <div class="risk-bar-fill" style="width:0%;background:linear-gradient(90deg,#22c55e,#16a34a)" data-w="40"></div>
+            </div>
+            <div class="stat-card-sub"><span class="stat-delta delta-up">↑4%</span> vs last month</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <span class="stat-card-label">Total Vendors</span>
+              <div class="stat-card-icon" style="background:rgba(255,255,255,.06)">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="rgba(255,255,255,.6)"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+              </div>
+            </div>
+            <div class="stat-card-value"><span class="counter" data-target="10">0</span></div>
+            <div class="stat-card-sub"><span class="stat-delta delta-neutral">→0</span> this week</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <span class="stat-card-label">Compliant</span>
+              <div class="stat-card-icon" style="background:rgba(34,197,94,.08)">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="#22c55e"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+            <div class="stat-card-value"><span class="counter" data-target="4">0</span></div>
+            <div class="stat-card-sub" style="color:#22c55e">Full coverage</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <span class="stat-card-label">Needs Review</span>
+              <div class="stat-card-icon" style="background:rgba(245,158,11,.08)">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="#f59e0b"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+            <div class="stat-card-value"><span class="counter" data-target="4">0</span></div>
+            <div class="stat-card-sub" style="color:#f59e0b">Action needed</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <span class="stat-card-label">Non-Compliant</span>
+              <div class="stat-card-icon" style="background:rgba(239,68,68,.08)">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="#ef4444"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+            <div class="stat-card-value"><span class="counter" data-target="2">0</span></div>
+            <div class="stat-card-sub" style="color:#ef4444">Immediate action</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <span class="stat-card-label">AI Confidence</span>
+              <div class="stat-card-icon" style="background:rgba(255,255,255,.06)">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="rgba(255,255,255,.6)"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>
+              </div>
+            </div>
+            <div class="stat-card-value"><span class="counter" data-target="98">0</span>%</div>
+            <div class="stat-card-sub"><span class="stat-delta delta-up">↑2%</span> accuracy</div>
+          </div>
+
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+          <!-- Trend Line Chart -->
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">Compliance Trend</div>
+                <div class="chart-card-sub">6-month rolling window</div>
+              </div>
+              <div class="chart-legend">
+                <span class="legend-dot" style="--c:#fff"><span style="width:8px;height:8px;border-radius:2px;background:#fff;display:inline-block;margin-right:4px"></span>Compliant</span>
+                <span class="legend-dot"><span style="width:8px;height:8px;border-radius:2px;background:#f59e0b;display:inline-block;margin-right:4px"></span>Review</span>
+                <span class="legend-dot"><span style="width:8px;height:8px;border-radius:2px;background:#ef4444;display:inline-block;margin-right:4px"></span>Non-Compliant</span>
+              </div>
+            </div>
+            <canvas id="trend-chart" height="180"></canvas>
+          </div>
+
+          <!-- Doughnut + Ring -->
+          <div class="chart-card" style="display:flex;flex-direction:column;align-items:center">
+            <div class="chart-card-header" style="width:100%">
+              <div>
+                <div class="chart-card-title">Risk Distribution</div>
+                <div class="chart-card-sub">Current vendor portfolio</div>
+              </div>
+            </div>
+            <canvas id="donut-chart" width="160" height="160" style="max-width:160px;max-height:160px"></canvas>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;width:100%">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:2px;background:#22c55e;display:inline-block"></span><span style="font-size:12px;color:var(--text-2)">Low Risk</span></div>
+                <span style="font-size:13px;font-weight:700;color:#fff">4 <span style="font-size:11px;color:var(--text-3);font-weight:400">vendors</span></span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:2px;background:#f59e0b;display:inline-block"></span><span style="font-size:12px;color:var(--text-2)">Medium Risk</span></div>
+                <span style="font-size:13px;font-weight:700;color:#fff">3 <span style="font-size:11px;color:var(--text-3);font-weight:400">vendors</span></span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:2px;background:#ef4444;display:inline-block"></span><span style="font-size:12px;color:var(--text-2)">High Risk</span></div>
+                <span style="font-size:13px;font-weight:700;color:#fff">3 <span style="font-size:11px;color:var(--text-3);font-weight:400">vendors</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Row: Recent Activity + Alerts + Quick Actions -->
+        <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:24px">
+
+          <!-- Recent Activity Table -->
+          <div class="data-card">
+            <div class="data-card-header">
+              <span class="data-card-title">Recent Vendor Activity</span>
+              <button class="btn-sm" onclick="navigate('vendors',null)">View All →</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Vendor</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Risk Score</th>
+                  <th>Last Upload</th>
+                </tr>
+              </thead>
+              <tbody id="recent-table">
+                <tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:30px">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Right column: Alerts + Quick Actions -->
+          <div style="display:flex;flex-direction:column;gap:16px">
+
+            <!-- Active Alerts -->
+            <div class="data-card" style="margin-bottom:0">
+              <div class="data-card-header">
+                <span class="data-card-title">Active Alerts</span>
+                <button class="btn-sm" onclick="navigate('alerts',null)">All →</button>
+              </div>
+              <div id="alert-list">
+                <div class="alert-item">
+                  <div class="alert-dot" style="background:#ef4444"></div>
+                  <div class="alert-content">
+                    <div class="alert-title">Triton Field Services</div>
+                    <div class="alert-meta">GL policy expired 57 days ago · CRITICAL</div>
+                  </div>
+                </div>
+                <div class="alert-item">
+                  <div class="alert-dot" style="background:#ef4444"></div>
+                  <div class="alert-content">
+                    <div class="alert-title">Delta Contractors Inc.</div>
+                    <div class="alert-meta">NON-COMPLIANT · Immediate action required</div>
+                  </div>
+                </div>
+                <div class="alert-item">
+                  <div class="alert-dot" style="background:#f59e0b"></div>
+                  <div class="alert-content">
+                    <div class="alert-title">BlueSky Trenching Inc.</div>
+                    <div class="alert-meta">WC expires Jul 14 · 17 days remaining</div>
+                  </div>
+                </div>
+                <div class="alert-item">
+                  <div class="alert-dot" style="background:#f59e0b"></div>
+                  <div class="alert-content">
+                    <div class="alert-title">Harbor Line Electric</div>
+                    <div class="alert-meta">GL expires Jul 10 · 13 days remaining</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="data-card" style="margin-bottom:0;padding:16px 20px">
+              <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:14px">Quick Actions</div>
+              <div class="quick-actions">
+                <button class="qa-btn" onclick="navigate('upload',null)">
+                  <div class="qa-icon" style="background:rgba(255,255,255,.06)">📤</div>
+                  <span>Upload Doc</span>
+                </button>
+                <button class="qa-btn" onclick="navigate('analysis',null)">
+                  <div class="qa-icon" style="background:rgba(59,130,246,.1)">🤖</div>
+                  <span>Run AI Analysis</span>
+                </button>
+                <button class="qa-btn" onclick="navigate('reports',null)">
+                  <div class="qa-icon" style="background:rgba(34,197,94,.08)">📋</div>
+                  <span>View Reports</span>
+                </button>
+                <button class="qa-btn" onclick="navigate('vendors',null)">
+                  <div class="qa-icon" style="background:rgba(245,158,11,.08)">🔍</div>
+                  <span>Search Vendors</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Expiring Soon Banner -->
+        <div id="expiry-banner" style="
+          background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);
+          border-radius:12px;padding:14px 18px;
+          display:flex;align-items:center;gap:12px;margin-bottom:24px;
+        ">
+          <span style="font-size:18px">⚠️</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:#f59e0b;margin-bottom:2px">2 vendors expiring within 30 days</div>
+            <div style="font-size:12px;color:rgba(245,158,11,.6)">BlueSky Trenching (GL Jul 14) · Harbor Line Electric (GL Jul 10). Send renewal reminders now.</div>
+          </div>
+          <button class="btn-sm" style="border-color:rgba(245,158,11,.3);color:#f59e0b" onclick="showToast('Renewal reminders queued for 2 vendors','📧');this.parentElement.remove()">Send Reminders</button>
+        </div>
+
+      </div><!-- /page-dashboard -->
+
+      <!-- ════ VENDOR DIRECTORY ════ -->
+      <div id="page-vendors" class="page">
+        <div class="page-header">
+          <h1>Vendor Directory</h1>
+          <p>Search, filter and manage all vendors in your network</p>
+        </div>
+
+        <!-- Search + Filters -->
+        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;flex:1;min-width:200px">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="rgba(255,255,255,.3)"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"/></svg>
+            <input id="vendor-search" type="text" placeholder="Search vendors…" style="background:none;border:none;outline:none;color:#fff;font-size:13px;width:100%" oninput="filterVendors()">
+          </div>
+          <select id="vendor-status-filter" onchange="filterVendors()" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text-2);font-size:13px;outline:none">
+            <option value="">All Statuses</option>
+            <option value="COMPLIANT">Compliant</option>
+            <option value="NEEDS_REVIEW">Needs Review</option>
+            <option value="NON_COMPLIANT">Non-Compliant</option>
+          </select>
+          <select id="vendor-risk-filter" onchange="filterVendors()" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text-2);font-size:13px;outline:none">
+            <option value="">All Risk Tiers</option>
+            <option value="LOW">Low Risk</option>
+            <option value="MEDIUM">Medium Risk</option>
+            <option value="HIGH">High Risk</option>
+          </select>
+          <button class="btn-primary-sm" onclick="openAddVendorModal()" style="padding:8px 18px">+ Add Vendor</button>
+        </div>
+
+        <div class="data-card">
+          <div class="data-card-header">
+            <span class="data-card-title">All Vendors</span>
+            <span id="vendor-count-label" class="text-sm text-muted">10 vendors</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Vendor Name</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Risk Score</th>
+                <th>Risk Tier</th>
+                <th>Diversity</th>
+                <th>GL Expiry</th>
+                <th>State</th>
+              </tr>
+            </thead>
+            <tbody id="vendor-table-body">
+              <tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:30px">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ════ UPLOAD CENTER ════ -->
+      <div id="page-upload" class="page">
+        <div class="page-header">
+          <h1>Upload Center</h1>
+          <p>Upload COI, diversity certificates, or any compliance document for AI analysis</p>
+        </div>
+
+        <!-- Upload Form (real backend) -->
+
+        <!-- Step 1: Vendor + Doc Type -->
+        <div class="data-card" style="padding:22px;margin-bottom:18px">
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:16px">Step 1 — Vendor &amp; Document Type</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Vendor</label>
+              <select id="upload-vendor-id" onchange="handleVendorSelectChange()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:#fff;font-size:13px;outline:none">
+                <option value="">-- Select existing vendor --</option>
+                <option value="__new__">➕ New vendor (type name below)</option>
+              </select>
+              <!-- shown only when __new__ is selected -->
+              <input id="upload-new-vendor-name" type="text" placeholder="Enter new vendor name…"
+                style="display:none;width:100%;margin-top:8px;background:var(--bg3);border:1px solid var(--blue);border-radius:9px;padding:9px 12px;color:#fff;font-size:13px;outline:none;box-sizing:border-box">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Document Type</label>
+              <select id="upload-doc-type" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:#fff;font-size:13px;outline:none">
+                <option value="AUTO">Auto Detect</option>
+                <option value="COI">Certificate of Insurance (COI)</option>
+                <option value="DIVERSITY_CERT">Diversity Certificate</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:10px;font-size:11px;color:var(--text-3)">💡 No vendor yet? Select <em>New vendor</em> and type the name — it will be created automatically.</div>
+        </div>
+
+        <!-- Step 2: File Drop Zone -->
+        <div id="drop-zone" style="
+          border:2px dashed rgba(255,255,255,.15);border-radius:18px;
+          padding:60px 40px;text-align:center;margin-bottom:18px;
+          background:var(--bg2);cursor:pointer;
+          transition:border-color .2s,background .2s;
+        "
+        ondragover="event.preventDefault();this.style.borderColor='rgba(255,255,255,.4)';this.style.background='rgba(255,255,255,.03)'"
+        ondragleave="this.style.borderColor='rgba(255,255,255,.15)';this.style.background='var(--bg2)'"
+        ondrop="handleDrop(event)"
+        onclick="document.getElementById('file-input').click()">
+          <div style="font-size:40px;margin-bottom:16px">📂</div>
+          <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:8px">Drop document here or click to browse</div>
+          <div style="font-size:13px;color:var(--text-3)">PDF, PNG, JPG · Max 20 MB</div>
+          <input id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="handleFileSelect(this.files)">
+        </div>
+
+        <!-- Upload Progress / Result -->
+        <div id="upload-queue" style="display:none;margin-bottom:18px">
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:14px">Upload Progress</div>
+          <div id="queue-items"></div>
+        </div>
+
+        <!-- Upload Result card -->
+        <div id="upload-result-card" style="display:none" class="data-card">
+          <div style="padding:22px">
+            <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:14px">Analysis Result</div>
+            <div id="upload-result-content"></div>
+          </div>
+        </div>
+
+        <!-- Supported types info -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:18px">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px">
+            <div style="font-size:20px;margin-bottom:8px">📄</div>
+            <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px">Certificate of Insurance</div>
+            <div style="font-size:12px;color:var(--text-3)">GL, WC, Auto policies. AI extracts all coverage limits and expiry dates.</div>
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px">
+            <div style="font-size:20px;margin-bottom:8px">🏷️</div>
+            <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px">Diversity Certificate</div>
+            <div style="font-size:12px;color:var(--text-3)">MBE, WBE, DBE, SBE, VOSB, HUBZone. Validates cert type, agency and ownership %.</div>
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px">
+            <div style="font-size:20px;margin-bottom:8px">📊</div>
+            <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px">General Documents</div>
+            <div style="font-size:12px;color:var(--text-3)">Contracts, W-9s, vendor agreements. AI extracts key compliance fields.</div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ════ AI ANALYSIS ════ -->
+      <div id="page-analysis" class="page">
+        <div class="page-header">
+          <h1>AI Analysis</h1>
+          <p>Paste document text or select an uploaded file to run Gemini AI extraction + compliance scoring</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 360px;gap:20px">
+          <div>
+            <div class="data-card" style="margin-bottom:0;padding:20px">
+              <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:14px">Document Text</div>
+              <textarea id="analysis-text" placeholder="Paste certificate text here… or use Upload Center to upload a file and its ID will appear here." style="
+                width:100%;min-height:220px;background:var(--bg3);border:1px solid var(--border);
+                border-radius:10px;padding:14px;color:#fff;font-size:13px;
+                resize:vertical;outline:none;line-height:1.6;
+              " oninput="this.style.borderColor='rgba(255,255,255,.2)'"></textarea>
+
+              <div style="display:flex;gap:10px;margin-top:14px;align-items:center">
+                <select id="doc-type-hint" style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--text-2);font-size:13px;outline:none">
+                  <option value="COI">Certificate of Insurance (COI)</option>
+                  <option value="DIVERSITY_CERT">Diversity Certificate</option>
+                  <option value="GENERAL">General Document</option>
+                </select>
+                <button class="btn-primary-sm" style="padding:9px 24px" onclick="runAnalysis()">Run AI Analysis →</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="analysis-result" style="display:flex;flex-direction:column;gap:14px">
+            <div class="data-card" style="margin-bottom:0;padding:20px">
+              <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:14px">Analysis Result</div>
+              <div id="result-placeholder" style="text-align:center;padding:30px 0;color:var(--text-3);font-size:13px">
+                Run analysis to see results here
+              </div>
+              <div id="result-content" style="display:none">
+                <div style="margin-bottom:14px">
+                  <div id="res-badge" style="display:inline-block;margin-bottom:12px"></div>
+                  <div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;margin-bottom:4px"><span id="res-score">—</span><span style="font-size:16px;font-weight:400;color:var(--text-3)">/100</span></div>
+                  <div style="font-size:12px;color:var(--text-3)">Risk Score</div>
+                </div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.7" id="res-summary"></div>
+                <div style="margin-top:14px">
+                  <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Findings</div>
+                  <div id="res-findings"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ REPORTS ════ -->
+      <div id="page-reports" class="page">
+        <div class="page-header">
+          <h1>Compliance Reports</h1>
+          <p>Audit-ready compliance reports and documentation</p>
+        </div>
+        <div class="coming-soon">
+          <div class="coming-soon-icon">📋</div>
+          <h2>Reports — Coming in Step 4</h2>
+          <p>Full compliance report generation with PDF export, audit trail, and board-ready summaries.</p>
+        </div>
+      </div>
+
+      <!-- ════ ALERTS ════ -->
+      <div id="page-alerts" class="page">
+        <div class="page-header">
+          <h1>Alerts</h1>
+          <p>Active compliance alerts sorted by severity</p>
+        </div>
+
+        <div class="data-card">
+          <div class="data-card-header">
+            <span class="data-card-title">All Active Alerts</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span class="badge badge-red">6 CRITICAL</span>
+              <span class="badge badge-amber">4 MEDIUM</span>
+            </div>
+          </div>
+          <div id="full-alerts-list">
+            <div style="text-align:center;color:var(--text-3);padding:30px;font-size:13px">Loading alerts…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ ANALYTICS ════ -->
+      <div id="page-analytics" class="page">
+        <div class="page-header">
+          <h1>Analytics</h1>
+          <p>Deep-dive compliance and risk analytics</p>
+        </div>
+        <div class="coming-soon">
+          <div class="coming-soon-icon">📊</div>
+          <h2>Analytics — Coming in Step 5</h2>
+          <p>Advanced analytics including trend analysis, category breakdown, diversity spend tracking, and predictive risk scoring.</p>
+        </div>
+      </div>
+
+      <!-- ════ SETTINGS ════ -->
+      <div id="page-settings" class="page">
+        <div class="page-header">
+          <h1>Settings</h1>
+          <p>API configuration, thresholds, and team management</p>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="data-card" style="margin-bottom:0;padding:22px">
+            <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:18px">API Configuration</div>
+            <div style="margin-bottom:14px">
+              <label style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Gemini API Key</label>
+              <div style="display:flex;gap:8px">
+                <input type="password" placeholder="AIza…" value="" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:#fff;font-size:13px;outline:none">
+                <button class="btn-sm" onclick="showToast('API key saved','✓')">Save</button>
+              </div>
+            </div>
+            <div style="margin-bottom:14px">
+              <label style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Gemini Model</label>
+              <select style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:var(--text-2);font-size:13px;outline:none">
+                <option>gemini-1.5-flash</option>
+                <option>gemini-1.5-pro</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:12px;background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.15);border-radius:9px">
+              <span style="color:#22c55e;font-size:12px">●</span>
+              <span style="font-size:12px;color:var(--text-2)">Running in mock mode — add API key to enable real AI</span>
+            </div>
+          </div>
+
+          <div class="data-card" style="margin-bottom:0;padding:22px">
+            <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:18px">Compliance Thresholds</div>
+            <div style="margin-bottom:14px">
+              <label style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Min. GL Coverage</label>
+              <input type="text" value="$2,000,000" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:#fff;font-size:13px;outline:none">
+            </div>
+            <div style="margin-bottom:14px">
+              <label style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Min. Workers Comp</label>
+              <input type="text" value="$1,000,000" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:#fff;font-size:13px;outline:none">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Expiry Warning (days)</label>
+              <input type="number" value="30" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:#fff;font-size:13px;outline:none">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-wrap -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ══════════ COMMAND PALETTE ══════════ -->
+<div class="cmd-overlay" id="cmd-overlay" onclick="if(event.target===this)closeCmd()">
+  <div class="cmd-box" onclick="event.stopPropagation()">
+    <div class="cmd-input-wrap">
+      <svg class="cmd-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"/></svg>
+      <input class="cmd-input" id="cmd-input" placeholder="Search pages, vendors, actions…" oninput="filterCmd(this.value)" onkeydown="handleCmdKey(event)">
+    </div>
+    <div class="cmd-divider"></div>
+    <div class="cmd-results" id="cmd-results"></div>
+    <div class="cmd-footer">
+      <span class="cmd-hint"><span class="cmd-key">↑↓</span> Navigate</span>
+      <span class="cmd-hint"><span class="cmd-key">↵</span> Select</span>
+      <span class="cmd-hint"><span class="cmd-key">Esc</span> Close</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TOAST CONTAINER ══════════ -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+/* ── DATA ─────────────────────────────────── */
+const VENDORS = [
+  { name:'Acme Construction LLC',   category:'Construction',  status:'COMPLIANT',     riskScore:88, riskTier:'LOW',    diversityCerts:['MBE'],           glExpiry:'2027-12-15', wcExpiry:'2027-12-15', state:'TX', lastUpload:'2d ago' },
+  { name:'BlueSky Trenching Inc.',   category:'Excavation',    status:'NEEDS_REVIEW',  riskScore:58, riskTier:'MEDIUM', diversityCerts:[],                glExpiry:'2026-07-20', wcExpiry:'2026-07-14', state:'TX', lastUpload:'5d ago' },
+  { name:'Triton Field Services',    category:'Field Ops',     status:'NON_COMPLIANT', riskScore:22, riskTier:'HIGH',   diversityCerts:[],                glExpiry:'2026-05-01', wcExpiry:'2026-04-15', state:'LA', lastUpload:'10d ago' },
+  { name:'Summit Substation Co.',    category:'Electrical',    status:'NEEDS_REVIEW',  riskScore:64, riskTier:'MEDIUM', diversityCerts:['WBE'],           glExpiry:'2027-06-22', wcExpiry:'2027-08-10', state:'OK', lastUpload:'3d ago' },
+  { name:'Harbor Line Electric',     category:'Electrical',    status:'NEEDS_REVIEW',  riskScore:35, riskTier:'HIGH',   diversityCerts:['DBE'],           glExpiry:'2026-07-10', wcExpiry:'2026-07-05', state:'FL', lastUpload:'1d ago' },
+  { name:'Nova Grid Works',          category:'Transmission',  status:'COMPLIANT',     riskScore:91, riskTier:'LOW',    diversityCerts:['MBE','SBE'],     glExpiry:'2027-03-01', wcExpiry:'2027-03-01', state:'TX', lastUpload:'4d ago' },
+  { name:'Delta Contractors Inc.',   category:'Construction',  status:'NON_COMPLIANT', riskScore:18, riskTier:'HIGH',   diversityCerts:[],                glExpiry:'2026-04-28', wcExpiry:'2026-03-28', state:'GA', lastUpload:'15d ago' },
+  { name:'Orion Utilities Support',  category:'Maintenance',   status:'NEEDS_REVIEW',  riskScore:47, riskTier:'MEDIUM', diversityCerts:['VOSB'],          glExpiry:'2027-01-20', wcExpiry:'2027-01-20', state:'AZ', lastUpload:'7d ago' },
+  { name:'Apex Cable Services',      category:'Telecom/Cable', status:'COMPLIANT',     riskScore:82, riskTier:'LOW',    diversityCerts:['WBE','HUBZone'], glExpiry:'2027-06-01', wcExpiry:'2027-06-01', state:'TX', lastUpload:'2d ago' },
+  { name:'Meridian Pipe & Steel',    category:'Materials',     status:'COMPLIANT',     riskScore:76, riskTier:'LOW',    diversityCerts:[],                glExpiry:'2027-02-15', wcExpiry:'2027-02-15', state:'TX', lastUpload:'6d ago' },
+];
+
+const ALERTS_DATA = [
+  { severity:'CRITICAL', vendorName:'Triton Field Services',   type:'EXPIRED',       message:'GL policy expired 57 day(s) ago.' },
+  { severity:'CRITICAL', vendorName:'Triton Field Services',   type:'EXPIRED',       message:'Workers Comp expired 73 day(s) ago.' },
+  { severity:'CRITICAL', vendorName:'Triton Field Services',   type:'NON_COMPLIANT', message:'NON-COMPLIANT — immediate action required.' },
+  { severity:'CRITICAL', vendorName:'Delta Contractors Inc.',  type:'EXPIRED',       message:'GL policy expired 60 day(s) ago.' },
+  { severity:'CRITICAL', vendorName:'Delta Contractors Inc.',  type:'EXPIRED',       message:'Workers Comp expired 91 day(s) ago.' },
+  { severity:'CRITICAL', vendorName:'Delta Contractors Inc.',  type:'NON_COMPLIANT', message:'NON-COMPLIANT — immediate action required.' },
+  { severity:'MEDIUM',   vendorName:'Harbor Line Electric',    type:'EXPIRING_SOON', message:'GL expires in 13 days (Jul 10, 2026).' },
+  { severity:'MEDIUM',   vendorName:'Harbor Line Electric',    type:'EXPIRING_SOON', message:'WC expires in 8 days (Jul 5, 2026).' },
+  { severity:'MEDIUM',   vendorName:'BlueSky Trenching Inc.',  type:'EXPIRING_SOON', message:'GL expires in 23 days (Jul 20, 2026).' },
+  { severity:'MEDIUM',   vendorName:'BlueSky Trenching Inc.',  type:'EXPIRING_SOON', message:'WC expires in 17 days (Jul 14, 2026).' },
+];
+
+/* ── NAVIGATION ─────────────────────────────── */
+const PAGE_TITLES = {
+  dashboard:'Dashboard', vendors:'Vendor Directory', upload:'Upload Center',
+  analysis:'AI Analysis', reports:'Reports', alerts:'Alerts',
+  analytics:'Analytics', settings:'Settings'
+};
+const PAGE_SUBS = {
+  dashboard:'Overview', vendors:'All Vendors', upload:'Document Upload',
+  analysis:'Gemini AI', reports:'Compliance Reports', alerts:'Active Alerts',
+  analytics:'Insights', settings:'Configuration'
+};
+
+function navigate(page, navEl){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const target = navEl || document.querySelector(`[data-page="${page}"]`);
+  if(target) target.classList.add('active');
+  document.getElementById('topnav-title').textContent = PAGE_TITLES[page]||page;
+  document.getElementById('topnav-sub').textContent   = PAGE_SUBS[page]||page;
+
+  if(page==='vendors')   renderVendorTable(VENDORS);
+  if(page==='alerts')    renderFullAlerts();
+  closeCmd();
+}
+
+/* ── SIDEBAR TOGGLE ─────────────────────────── */
+let sidebarCollapsed = false;
+function toggleSidebar(){
+  sidebarCollapsed = !sidebarCollapsed;
+  document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
+}
+
+/* ── COUNTERS ─────────────────────────────── */
+function animateCounters(){
+  document.querySelectorAll('.counter').forEach(el=>{
+    const target = parseInt(el.dataset.target);
+    let current = 0;
+    const step  = target / 40;
+    const timer = setInterval(()=>{
+      current = Math.min(current+step, target);
+      el.textContent = Math.round(current);
+      if(current>=target) clearInterval(timer);
+    }, 30);
+  });
+}
+
+/* ── RISK BARS ─────────────────────────────── */
+function animateBars(){
+  setTimeout(()=>{
+    document.querySelectorAll('[data-w]').forEach(el=>{
+      el.style.width = el.dataset.w + '%';
+    });
+  }, 200);
+}
+
+/* ── CHARTS ─────────────────────────────────── */
+function initCharts(){
+  // Trend line chart
+  const trendCtx = document.getElementById('trend-chart');
+  if(!trendCtx) return;
+  new Chart(trendCtx, {
+    type:'line',
+    data:{
+      labels:['Jan','Feb','Mar','Apr','May','Jun'],
+      datasets:[
+        {
+          label:'Compliant',
+          data:[68,72,75,80,84,40],
+          borderColor:'rgba(255,255,255,.9)',
+          backgroundColor:'rgba(255,255,255,.05)',
+          borderWidth:2, pointRadius:4,
+          pointBackgroundColor:'#fff', fill:true, tension:.4,
+        },
+        {
+          label:'Needs Review',
+          data:[22,18,16,12,11,40],
+          borderColor:'rgba(245,158,11,.8)',
+          backgroundColor:'rgba(245,158,11,.04)',
+          borderWidth:2, pointRadius:3,
+          pointBackgroundColor:'#f59e0b', fill:true, tension:.4,
+        },
+        {
+          label:'Non-Compliant',
+          data:[10,10,9,8,5,20],
+          borderColor:'rgba(239,68,68,.8)',
+          backgroundColor:'rgba(239,68,68,.04)',
+          borderWidth:2, pointRadius:3,
+          pointBackgroundColor:'#ef4444', fill:true, tension:.4,
+        },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(15,15,15,.95)', borderColor:'rgba(255,255,255,.1)', borderWidth:1, titleColor:'#fff', bodyColor:'rgba(255,255,255,.6)', padding:10 } },
+      scales:{
+        x:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'rgba(255,255,255,.35)',font:{size:11}} },
+        y:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'rgba(255,255,255,.35)',font:{size:11}}, min:0, max:100 }
+      }
+    }
+  });
+
+  // Doughnut
+  const donutCtx = document.getElementById('donut-chart');
+  new Chart(donutCtx, {
+    type:'doughnut',
+    data:{
+      labels:['Low Risk','Medium Risk','High Risk'],
+      datasets:[{
+        data:[4,3,3],
+        backgroundColor:['rgba(34,197,94,.7)','rgba(245,158,11,.7)','rgba(239,68,68,.7)'],
+        borderColor:['rgba(34,197,94,.9)','rgba(245,158,11,.9)','rgba(239,68,68,.9)'],
+        borderWidth:1, hoverOffset:6,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true, cutout:'68%',
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(15,15,15,.95)', borderColor:'rgba(255,255,255,.1)', borderWidth:1, titleColor:'#fff', bodyColor:'rgba(255,255,255,.6)', padding:10 } }
+    }
+  });
+}
+
+/* ── RECENT TABLE ─────────────────────────── */
+function renderRecentTable(){
+  const sorted = [...VENDORS].sort((a,b)=>a.riskScore-b.riskScore).slice(0,7);
+  const tbody = document.getElementById('recent-table');
+  tbody.innerHTML = sorted.map(v=>`
+    <tr>
+      <td class="td-name">${v.name}</td>
+      <td>${v.category}</td>
+      <td>${statusBadge(v.status)}</td>
+      <td><span style="font-weight:700;color:${scoreColor(v.riskScore)}">${v.riskScore}</span><span style="color:var(--text-3);font-size:11px">/100</span></td>
+      <td style="color:var(--text-3)">${v.lastUpload}</td>
+    </tr>`).join('');
+}
+
+/* ── VENDOR TABLE ─────────────────────────── */
+let filteredVendors = [...VENDORS];
+function filterVendors(){
+  const search   = document.getElementById('vendor-search').value.toLowerCase();
+  const status   = document.getElementById('vendor-status-filter').value;
+  const risk     = document.getElementById('vendor-risk-filter').value;
+  filteredVendors = VENDORS.filter(v=>{
+    if(search && !v.name.toLowerCase().includes(search) && !v.category.toLowerCase().includes(search)) return false;
+    if(status && v.status !== status) return false;
+    if(risk   && v.riskTier !== risk)   return false;
+    return true;
+  });
+  renderVendorTable(filteredVendors);
+}
+function renderVendorTable(list){
+  const tbody = document.getElementById('vendor-table-body');
+  if(!tbody) return;
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:30px">No vendors match your filters</td></tr>'; return; }
+  tbody.innerHTML = list.map(v=>`
+    <tr>
+      <td class="td-name">${v.name}</td>
+      <td>${v.category}</td>
+      <td>${statusBadge(v.status)}</td>
+      <td><span style="font-weight:700;color:${scoreColor(v.riskScore)}">${v.riskScore}</span><span style="color:var(--text-3);font-size:11px">/100</span></td>
+      <td>${riskBadge(v.riskTier)}</td>
+      <td>${v.diversityCerts.length ? v.diversityCerts.map(c=>`<span class="badge badge-blue">${c}</span>`).join(' ') : '<span style="color:var(--text-3);font-size:12px">None</span>'}</td>
+      <td style="color:${expiryColor(v.glExpiry)}">${v.glExpiry}</td>
+      <td style="color:var(--text-3)">${v.state}</td>
+    </tr>`).join('');
+}
+
+/* ── ALERTS PAGE ─────────────────────────── */
+function renderFullAlerts(){
+  const el = document.getElementById('full-alerts-list');
+  if(!el) return;
+  el.innerHTML = ALERTS_DATA.map(a=>`
+    <div class="alert-item" style="padding:16px 20px">
+      <div class="alert-dot" style="background:${a.severity==='CRITICAL'?'#ef4444':'#f59e0b'};margin-top:2px"></div>
+      <div class="alert-content">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+          <span class="alert-title">${a.vendorName}</span>
+          <span class="badge ${a.severity==='CRITICAL'?'badge-red':'badge-amber'}">${a.severity}</span>
+        </div>
+        <div class="alert-meta">${a.message}</div>
+      </div>
+      <button class="btn-sm" style="flex-shrink:0" onclick="showToast('Reminder sent to ${a.vendorName}','📧')">Remind</button>
+    </div>`).join('');
+}
+
+/* ── AI ANALYSIS ─────────────────────────── */
+async function runAnalysis(){
+  const text   = document.getElementById('analysis-text').value.trim();
+  const hint   = document.getElementById('doc-type-hint').value;
+  const resDiv = document.getElementById('result-content');
+  const plhDiv = document.getElementById('result-placeholder');
+  if(!text){ showToast('Please paste some document text first','⚠'); return; }
+  plhDiv.textContent='Analyzing with Gemini AI...'; plhDiv.style.display='block'; resDiv.style.display='none';
+
+  try {
+    const res = await apiFetch('/analyze', {
+      method: 'POST',
+      body: JSON.stringify({ raw_text: text, doc_type_hint: hint })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.detail || "Backend analysis failed");
+    }
+    const result = await res.json();
+    
+    plhDiv.style.display='none'; resDiv.style.display='block';
+    const score = Math.round((result.confidence_score || 0.9) * 100);
+    
+    document.getElementById('res-score').textContent = score;
+    document.getElementById('res-badge').innerHTML   = statusBadge(result.status);
+    document.getElementById('res-summary').textContent = "Document extraction audit completed.";
+    
+    const fc = document.getElementById('res-findings');
+    fc.innerHTML = result.findings && result.findings.length
+      ? result.findings.map(f=>`<div style="padding:8px 10px;background:var(--bg3);border-radius:7px;margin-bottom:6px;font-size:12px;color:var(--text-2)">[${f.severity}] ${f.rule_code} — ${f.message}</div>`).join('')
+      : '<div style="font-size:12px;color:#22c55e">✓ No compliance issues found</div>';
+      
+    showToast('Analysis complete · ' + result.status, '✓');
+  } catch (e) {
+    console.error(e);
+    showToast(e.message || 'Analysis failed', '✗');
+    plhDiv.textContent = 'Error: ' + (e.message || 'Failed to analyze text.');
+  }
+}
+
+/* ── HELPERS ─────────────────────────────── */
+function statusBadge(s){
+  if(s==='COMPLIANT')     return '<span class="badge badge-green">Compliant</span>';
+  if(s==='NEEDS_REVIEW')  return '<span class="badge badge-amber">Needs Review</span>';
+  if(s==='NON_COMPLIANT') return '<span class="badge badge-red">Non-Compliant</span>';
+  return '<span class="badge badge-gray">'+s+'</span>';
+}
+function riskBadge(t){
+  if(t==='LOW')    return '<span class="badge badge-green">Low</span>';
+  if(t==='MEDIUM') return '<span class="badge badge-amber">Medium</span>';
+  if(t==='HIGH')   return '<span class="badge badge-red">High</span>';
+  return t;
+}
+function scoreColor(n){ return n>=70?'#22c55e':n>=40?'#f59e0b':'#ef4444'; }
+function expiryColor(d){
+  if(!d) return 'var(--text-3)';
+  const days=(new Date(d)-new Date())/86400000;
+  return days<0?'#ef4444':days<30?'#f59e0b':'var(--text-2)';
+}
+
+/* ── COMMAND PALETTE ─────────────────────── */
+const CMD_ITEMS = [
+  {icon:'🏠', name:'Dashboard',        desc:'Overview & metrics',    action:()=>navigate('dashboard',null)},
+  {icon:'👥', name:'Vendor Directory', desc:'Search all vendors',    action:()=>navigate('vendors',null)},
+  {icon:'📤', name:'Upload Center',    desc:'Upload documents',      action:()=>navigate('upload',null)},
+  {icon:'🤖', name:'AI Analysis',      desc:'Run Gemini analysis',   action:()=>navigate('analysis',null)},
+  {icon:'📋', name:'Reports',          desc:'Compliance reports',    action:()=>navigate('reports',null)},
+  {icon:'🔔', name:'Alerts',           desc:'Active alerts',         action:()=>navigate('alerts',null)},
+  {icon:'📊', name:'Analytics',        desc:'Trends & insights',     action:()=>navigate('analytics',null)},
+  {icon:'⚙️',  name:'Settings',        desc:'Config & thresholds',   action:()=>navigate('settings',null)},
+];
+let cmdFocus=0;
+function openCmd(){ document.getElementById('cmd-overlay').classList.add('open'); document.getElementById('cmd-input').value=''; renderCmdItems(CMD_ITEMS); document.getElementById('cmd-input').focus(); cmdFocus=0; }
+function closeCmd(){ document.getElementById('cmd-overlay').classList.remove('open'); }
+function renderCmdItems(items){
+  document.getElementById('cmd-results').innerHTML=items.map((it,i)=>`
+    <div class="cmd-item${i===cmdFocus?' focused':''}" onclick="it${i}()" id="cmd-item-${i}">
+      <div class="cmd-item-icon">${it.icon}</div>
+      <div><div class="cmd-item-name">${it.name}</div><div class="cmd-item-desc">${it.desc}</div></div>
+    </div>`).join('');
+  items.forEach((it,i)=>{ window['it'+i]=it.action; });
+}
+function filterCmd(q){
+  cmdFocus=0;
+  const filtered=CMD_ITEMS.filter(it=>it.name.toLowerCase().includes(q.toLowerCase())||it.desc.toLowerCase().includes(q.toLowerCase()));
+  renderCmdItems(filtered.length?filtered:CMD_ITEMS);
+}
+function handleCmdKey(e){
+  const items=document.querySelectorAll('.cmd-item'); const n=items.length;
+  if(e.key==='ArrowDown'){e.preventDefault();cmdFocus=(cmdFocus+1)%n;items.forEach((el,i)=>el.classList.toggle('focused',i===cmdFocus));}
+  else if(e.key==='ArrowUp'){e.preventDefault();cmdFocus=(cmdFocus-1+n)%n;items.forEach((el,i)=>el.classList.toggle('focused',i===cmdFocus));}
+  else if(e.key==='Enter'){items[cmdFocus]?.click();}
+  else if(e.key==='Escape'){closeCmd();}
+}
+
+/* ── TOAST ─────────────────────────────── */
+let toastId=0;
+function showToast(msg, icon='ℹ️'){
+  const id='t'+(++toastId);
+  const el=document.createElement('div');
+  el.className='toast'; el.id=id;
+  el.innerHTML=`<span class="toast-icon">${icon}</span><span class="toast-msg">${msg}</span><span class="toast-close" onclick="dismissToast('${id}')">✕</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(()=>dismissToast(id),4000);
+}
+function dismissToast(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.classList.add('out');
+  setTimeout(()=>el.remove(),250);
+}
+
+/* ── KEYBOARD SHORTCUTS ─────────────────── */
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openCmd();}
+  if(e.key==='Escape'){closeCmd();}
+});
+
+/* ════════════════════════════════════════════
+   LIVE API LAYER
+════════════════════════════════════════════ */
+let AUTH_TOKEN = localStorage.getItem('vc_token') || '';
+const API = '/api/v1';
+
+async function apiFetch(path, opts={}) {
+  // Some routes are under /api/v1, others are at root level
+  const url = path.startsWith('/') && !path.startsWith('/api') ? path : API + path;
+  const headers = { ...(opts.headers||{}) };
+  if (AUTH_TOKEN) headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+  if (!opts.body || typeof opts.body === 'string') headers['Content-Type'] = 'application/json';
+  const res = await fetch(url, { ...opts, headers });
+  if (res.status === 401) { openLoginModal('Session expired. Please log in again.'); throw new Error('Unauthorized'); }
+  return res;
+}
+
+/* ── LOGIN MODAL ─────────────────────────── */
+let isRegMode = false;
+function toggleRegMode() {
+  isRegMode = !isRegMode;
+  document.getElementById('reg-name-row').style.display    = isRegMode ? 'block' : 'none';
+  document.getElementById('reg-confirm-row').style.display = isRegMode ? 'block' : 'none';
+  document.getElementById('login-submit-btn').textContent  = isRegMode ? 'Create Account' : 'Sign In';
+  document.getElementById('login-submit-btn').onclick      = isRegMode ? doRegister : doLogin;
+  document.getElementById('reg-toggle-btn').textContent    = isRegMode ? '← Back to Sign In' : 'Create Account';
+  document.getElementById('login-error').textContent = '';
+}
+function openLoginModal(msg) {
+  document.getElementById('login-modal').style.display = 'flex';
+  if (msg) document.getElementById('login-error').textContent = msg;
+}
+function closeLoginModal() {
+  if (AUTH_TOKEN) document.getElementById('login-modal').style.display = 'none';
+}
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const err      = document.getElementById('login-error');
+  err.textContent = '';
+  if (!email || !password) { err.textContent = 'Email and password are required.'; return; }
+  try {
+    const res = await fetch(API + '/auth/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password })
+    });
+    if (!res.ok) { const d=await res.json(); err.textContent=d.error||d.detail||'Login failed.'; return; }
+    const data = await res.json();
+    AUTH_TOKEN = data.access_token;
+    localStorage.setItem('vc_token', AUTH_TOKEN);
+    localStorage.setItem('vc_email', email);
+    document.getElementById('login-modal').style.display = 'none';
+    setUserAvatar(email);
+    showToast('Welcome, ' + email.split('@')[0], '✓');
+    await bootApp();
+  } catch(e) { err.textContent = 'Network error. Is the backend running on port 8000?'; }
+}
+
+function setUserAvatar(email) {
+  if (!email) return;
+  const name = localStorage.getItem('vc_user_name') || email.split('@')[0];
+  setUserProfile({ email, full_name: name });
+}
+
+function setUserProfile(user) {
+  if (!user) return;
+  
+  let initials = '';
+  if (user.full_name) {
+    const parts = user.full_name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    } else if (parts.length === 1 && parts[0]) {
+      initials = parts[0].slice(0, 2).toUpperCase();
+    }
+  }
+  if (!initials && user.email) {
+    initials = user.email.split('@')[0].slice(0, 2).toUpperCase();
+  }
+  
+  const av = document.getElementById('user-avatar');
+  if (av) av.textContent = initials || '?';
+  
+  const em = document.getElementById('user-menu-email');
+  if (em) {
+    em.innerHTML = `
+      <div style="font-weight:700;color:#fff;margin-bottom:3px">${user.full_name || 'User'}</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.4)">${user.email}</div>
+    `;
+  }
+}
+
+async function loadUserProfile() {
+  try {
+    const res = await apiFetch('/me');
+    if (res.ok) {
+      const user = await res.json();
+      setUserProfile(user);
+      if (user.full_name) localStorage.setItem('vc_user_name', user.full_name);
+    }
+  } catch (e) {
+    console.warn('Failed to load user profile', e);
+  }
+}
+
+function toggleUserMenu() {
+  const m = document.getElementById('user-menu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', e=>{
+  const menu = document.getElementById('user-menu');
+  const avatar = document.getElementById('user-avatar');
+  if (menu && !menu.contains(e.target) && !avatar.contains(e.target)) {
+    menu.style.display = 'none';
+  }
+});
+function doSignOut() {
+  AUTH_TOKEN = ''; 
+  localStorage.removeItem('vc_token'); 
+  localStorage.removeItem('vc_email'); 
+  localStorage.removeItem('vc_user_name');
+  const av = document.getElementById('user-avatar'); if(av) av.textContent = '?';
+  const em = document.getElementById('user-menu-email'); if(em) em.textContent = '—';
+  document.getElementById('user-menu').style.display='none';
+  openLoginModal('Signed out. Please sign in again.');
+}
+
+function handleVendorSelectChange() {
+  const sel = document.getElementById('upload-vendor-id');
+  const inp = document.getElementById('upload-new-vendor-name');
+  if (!sel || !inp) return;
+  inp.style.display = sel.value === '__new__' ? 'block' : 'none';
+  if (sel.value === '__new__') inp.focus();
+}
+async function doRegister() {
+  const fullName  = document.getElementById('login-fullname').value.trim();
+  const email     = document.getElementById('login-email').value.trim();
+  const password  = document.getElementById('login-password').value;
+  const confirm   = document.getElementById('login-confirm').value;
+  const err       = document.getElementById('login-error');
+  err.textContent = '';
+  if (!fullName)  { err.textContent = 'Full name is required.'; return; }
+  if (!email || !password) { err.textContent = 'Email and password are required.'; return; }
+  if (password !== confirm) { err.textContent = 'Passwords do not match.'; return; }
+  if (password.length < 8)  { err.textContent = 'Password must be at least 8 characters.'; return; }
+  if (!/[A-Z]/.test(password)) { err.textContent = 'Password must have at least one uppercase letter.'; return; }
+  if (!/\d/.test(password))    { err.textContent = 'Password must have at least one digit.'; return; }
+  try {
+    const res = await fetch(API + '/auth/register', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ full_name: fullName, email, password, confirm_password: confirm })
+    });
+    if (!res.ok) { const d=await res.json(); err.textContent=d.error||d.detail||'Registration failed.'; return; }
+    showToast('Account created! Logging in...', '✓');
+    await doLogin();
+  } catch(e) { err.textContent = 'Network error.'; }
+}
+
+/* ── LOAD VENDORS INTO UPLOAD SELECT ────── */
+async function loadVendorSelect() {
+  try {
+    const res = await apiFetch('/vendors?page_size=100&is_active=true');
+    if (!res.ok) return;
+    const json = await res.json();
+    // Response: {success, data: [...], total, ...}
+    const items = json.data || json.items || [];
+
+    // populate upload dropdown
+    const sel = document.getElementById('upload-vendor-id');
+    if (sel) {
+      sel.innerHTML = '<option value="">-- Select existing vendor --</option><option value="__new__">➕ New vendor (type name below)</option>';
+      items.forEach(v => {
+        const o = document.createElement('option');
+        o.value = v.id; o.textContent = v.name;
+        sel.appendChild(o);
+      });
+    }
+
+    // populate live VENDORS array
+    VENDORS.length = 0;
+    items.forEach(v => VENDORS.push({
+      id: v.id, name: v.name,
+      category: (v.diversity_types && v.diversity_types.length) ? 'Diverse Supplier' : 'Supplier',
+      status: v.status || 'NEEDS_REVIEW',
+      riskScore: v.status==='COMPLIANT'?88:v.status==='NON_COMPLIANT'?18:55,
+      riskTier: v.risk_tier || 'MEDIUM',
+      diversityCerts: v.diversity_types || [],
+      glExpiry: v.gl_expiry || '--', wcExpiry: v.wc_expiry || '--',
+      state: v.state || '--', lastUpload: '--'
+    }));
+    renderRecentTable();
+    renderVendorTable(VENDORS);
+    const lbl = document.getElementById('vendor-count-label');
+    if (lbl) lbl.textContent = (json.total || items.length) + ' vendors';
+    // Also update vendor-count label in the Vendor directory
+    const vcl = document.getElementById('vendor-count-label');
+    if (vcl) vcl.textContent = (json.total || items.length) + ' vendors';
+  } catch(e) { console.warn('Vendor load failed', e); }
+}
+
+/* ── ADD VENDOR MODAL ──────────────────── */
+function openAddVendorModal() {
+  document.getElementById('add-vendor-modal').style.display = 'flex';
+  document.getElementById('av-name').focus();
+}
+function closeAddVendorModal() {
+  document.getElementById('add-vendor-modal').style.display = 'none';
+  ['av-name','av-contact','av-email','av-state'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('av-error').textContent = '';
+}
+async function doAddVendor() {
+  const name    = document.getElementById('av-name').value.trim();
+  const contact = document.getElementById('av-contact').value.trim();
+  const email   = document.getElementById('av-email').value.trim();
+  const state   = document.getElementById('av-state').value.trim();
+  const err     = document.getElementById('av-error');
+  err.textContent = '';
+  if (!name) { err.textContent = 'Vendor name is required.'; return; }
+  if (!AUTH_TOKEN) { err.textContent = 'Not logged in.'; return; }
+  try {
+    const body = { name };
+    if (contact) body.contact_name = contact;
+    if (email)   body.email        = email;
+    if (state)   body.state        = state;
+    const res = await apiFetch('/vendors', { method:'POST', body: JSON.stringify(body) });
+    if (!res.ok) { const d=await res.json(); err.textContent=d.detail||'Failed to create vendor.'; return; }
+    const v = await res.json();
+    showToast('Vendor "' + v.name + '" created!', '✓');
+    closeAddVendorModal();
+    await loadVendorSelect();
+  } catch(e) { err.textContent = 'Network error.'; }
+}
+
+/* ── REAL FILE UPLOAD ────────────────────── */
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('drop-zone').style.borderColor='rgba(255,255,255,.15)';
+  document.getElementById('drop-zone').style.background='var(--bg2)';
+  handleFileSelect(e.dataTransfer.files);
+}
+
+async function handleFileSelect(files) {
+  if (!files || !files.length) return;
+  const file = files[0];
+  const nameOk = /\.(pdf|png|jpg|jpeg|tiff)$/i.test(file.name);
+  if (!nameOk) { showToast('Use PDF, PNG, or JPG files only.', '⚠'); return; }
+  if (!AUTH_TOKEN) { openLoginModal('Please sign in to upload documents.'); return; }
+
+  const selEl = document.getElementById('upload-vendor-id');
+  const selVal = selEl ? selEl.value : '';
+  let vendorId   = '';
+  let vendorName = '';
+
+  if (selVal === '__new__') {
+    vendorName = (document.getElementById('upload-new-vendor-name')||{}).value?.trim() || '';
+    if (!vendorName) { showToast('Enter a name for the new vendor.', '⚠'); return; }
+  } else if (selVal) {
+    vendorId = selVal;
+  }
+  // if neither, backend will use 'Unassigned'
+
+  const docType = (document.getElementById('upload-doc-type')||{}).value || 'AUTO';
+
+  const queue = document.getElementById('upload-queue');
+  const items = document.getElementById('queue-items');
+  queue.style.display = 'block';
+
+  const itemEl = document.createElement('div');
+  const uid = 'up' + Date.now();
+  itemEl.id = uid;
+  itemEl.style.cssText = 'display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:10px';
+  itemEl.innerHTML = `
+    <span style="font-size:18px">${file.name.match(/\.pdf$/i)?'📄':'🖼️'}</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${file.name}</div>
+      <div id="${uid}-sub" style="font-size:11px;color:var(--text-3)">${(file.size/1024).toFixed(1)} KB · Uploading + Analyzing...</div>
+    </div>
+    <div id="${uid}-prog" style="width:130px"><div style="background:var(--bg4);border-radius:99px;height:4px;overflow:hidden"><div id="${uid}-bar" style="height:100%;background:#fff;width:10%;border-radius:99px;transition:width .4s"></div></div></div>`;
+  items.innerHTML = '';
+  items.appendChild(itemEl);
+
+  // animate bar while uploading
+  let w=10;
+  const bar = document.getElementById(uid+'-bar');
+  const tick = setInterval(()=>{ w=Math.min(w+5,85); bar.style.width=w+'%'; },300);
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (vendorId)   formData.append('vendor_id', vendorId);
+    if (vendorName) formData.append('vendor_name', vendorName);
+    formData.append('doc_type_hint', docType);
+
+    const res = await fetch(API + '/upload', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + AUTH_TOKEN },
+      body: formData
+    });
+    clearInterval(tick);
+    bar.style.width = '100%';
+
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      document.getElementById(uid+'-prog').innerHTML = `<span style="font-size:11px;color:#ef4444">✗ ${err.detail||'Upload failed'}</span>`;
+      showToast('Upload failed: ' + (err.detail||'Check server logs'), '✗');
+      return;
+    }
+
+    const analysis = await res.json();
+    document.getElementById(uid+'-prog').innerHTML = '<span class="badge badge-green">✓ Done</span>';
+    document.getElementById(uid+'-sub').textContent = 'Analysis complete · ' + analysis.status;
+    showToast(file.name + ' analysed: ' + analysis.status, '✓');
+    showUploadResult(analysis);
+    await loadVendorSelect();
+
+  } catch(e) {
+    clearInterval(tick);
+    console.error(e);
+    document.getElementById(uid+'-prog').innerHTML = '<span style="font-size:11px;color:#ef4444">✗ Error</span>';
+    showToast('Upload failed. Is backend running?', '✗');
+  }
+}
+
+function showUploadResult(a) {
+  const card    = document.getElementById('upload-result-card');
+  const content = document.getElementById('upload-result-content');
+  if (!card || !content) return;
+  card.style.display = 'block';
+  const pct = Math.round((a.confidence_score||0)*100);
+  const col = pct>=70?'#22c55e':pct>=40?'#f59e0b':'#ef4444';
+  const fmap = {
+    'INSURED NAME': a.insured_name, 'POLICY #': a.policy_number,
+    'EXPIRY DATE':  a.expiry_date,  'CERT TYPE': a.cert_type,
+    'CERT #':       a.cert_number,
+    'GL LIMIT': a.general_liability_limit_usd ? '$' + Number(a.general_liability_limit_usd).toLocaleString() : null
+  };
+  let fields = '';
+  Object.entries(fmap).forEach(([l,v])=>{ if(v) fields+=`<div><div style="color:var(--text-3);font-size:10px;text-transform:uppercase;letter-spacing:.5px">${l}</div><div style="color:#fff;font-size:13px;font-weight:600">${v}</div></div>`; });
+  const findings = (a.findings||[]).map(f=>`<div style="padding:8px 10px;background:var(--bg3);border-radius:7px;margin-bottom:6px;font-size:12px;color:var(--text-2)">[${f.severity}] ${f.rule_code} — ${f.message}</div>`).join('')
+    || '<div style="font-size:12px;color:#22c55e">✓ No compliance issues found</div>';
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+      ${statusBadge(a.status)}
+      <div style="font-size:32px;font-weight:900;color:${col}">${pct}<span style="font-size:15px;font-weight:400;color:var(--text-3)">/100</span></div>
+    </div>
+    ${fields?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:14px;background:var(--bg3);border-radius:10px;margin-bottom:14px">${fields}</div>`:''}
+    <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Compliance Findings</div>
+    ${findings}
+    <div style="margin-top:12px;font-size:11px;color:var(--text-3)">Analysis ID: ${a.id||'--'}</div>`;
+}
+
+/* ── DASHBOARD STATS ─────────────────────── */
+async function loadDashboardStats() {
+  try {
+    // Dashboard is at root /dashboard/ (not /api/v1/dashboard)
+    const res = await fetch('/dashboard/', {
+      headers: AUTH_TOKEN ? { 'Authorization': 'Bearer ' + AUTH_TOKEN } : {}
+    });
+    if (!res.ok) return;
+    const s = await res.json();
+    const total   = (s.total_vendor_policies||0)+(s.total_diversity_certificates||0);
+    const expired = (s.expired_vendor_policies||0)+(s.expired_diversity_certificates||0);
+    const compliant = Math.max(0,total-expired);
+    const rate = total>0?Math.round((compliant/total)*100):0;
+    const vals = [rate, total, compliant, s.total_alerts||0, expired];
+    document.querySelectorAll('.counter').forEach((el,i)=>{
+      if (vals[i]!==undefined) { el.dataset.target=vals[i]; el.textContent='0'; }
+    });
+    animateCounters();
+  } catch(e){console.warn('Dashboard stats failed',e);}
+}
+
+/* ── ALERTS ──────────────────────────────── */
+async function loadAlerts() {
+  try {
+    // Alerts is at root /alerts/ (not /api/v1/alerts)
+    const res = await fetch('/alerts/', {
+      headers: AUTH_TOKEN ? { 'Authorization': 'Bearer ' + AUTH_TOKEN } : {}
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    // data is a plain array
+    ALERTS_DATA.length=0;
+    (Array.isArray(data) ? data : []).forEach(a=>ALERTS_DATA.push({
+      id:a.id, severity:a.severity||'MEDIUM', vendorName:'Alert', type:'ALERT', message:a.message
+    }));
+  } catch(e){console.warn('Alerts failed',e);}
+}
+
+/* ── BOOT ────────────────────────────────── */
+async function bootApp() {
+  await Promise.allSettled([loadUserProfile(), loadVendorSelect(), loadDashboardStats(), loadAlerts()]);
+  showToast('Live data loaded from database','✓');
+}
+
+/* ── INIT ─────────────────────────────── */
+document.addEventListener('DOMContentLoaded', ()=>{
+  initCharts();
+  animateCounters();
+  animateBars();
+  renderRecentTable();
+  showToast('VendorClear AI loaded','✦');
+  // Restore avatar if already logged in
+  const savedEmail = localStorage.getItem('vc_email');
+  if (savedEmail) setUserAvatar(savedEmail);
+  if (AUTH_TOKEN) { bootApp(); }
+  else { openLoginModal(); }
+});
+</script>
+
+<!-- ══════════ LOGIN MODAL ══════════ -->
+<div id="login-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);backdrop-filter:blur(12px);align-items:center;justify-content:center;">
+  <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:36px;width:100%;max-width:420px;box-shadow:0 40px 80px rgba(0,0,0,.8);max-height:95vh;overflow-y:auto">
+    <div style="margin-bottom:24px;text-align:center">
+      <div style="width:44px;height:44px;background:#fff;border-radius:12px;display:grid;place-items:center;font-size:18px;font-weight:900;color:#000;margin:0 auto 12px">V</div>
+      <div style="font-size:18px;font-weight:800;color:#fff">VendorClear AI</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-top:4px">Sign in to access your dashboard</div>
+    </div>
+
+    <!-- Full name (register only) -->
+    <div id="reg-name-row" style="display:none;margin-bottom:12px">
+      <label style="font-size:11px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Full Name</label>
+      <input id="login-fullname" type="text" placeholder="Jane Smith"
+        style="width:100%;background:#161616;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box">
+    </div>
+
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Email</label>
+      <input id="login-email" type="email" placeholder="you@example.com" autocomplete="email"
+        style="width:100%;background:#161616;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box"
+        onkeydown="if(event.key==='Enter') { isRegMode ? doRegister() : doLogin(); }">
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Password</label>
+      <input id="login-password" type="password" placeholder="Min 8 chars, 1 uppercase, 1 digit" autocomplete="current-password"
+        style="width:100%;background:#161616;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box"
+        onkeydown="if(event.key==='Enter') { isRegMode ? doRegister() : doLogin(); }">
+    </div>
+
+    <!-- Confirm password (register only) -->
+    <div id="reg-confirm-row" style="display:none;margin-bottom:12px">
+      <label style="font-size:11px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Confirm Password</label>
+      <input id="login-confirm" type="password" placeholder="Re-enter password"
+        style="width:100%;background:#161616;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box"
+        onkeydown="if(event.key==='Enter') doRegister()">
+    </div>
+
+    <div id="login-error" style="color:#ef4444;font-size:12px;margin-bottom:14px;min-height:18px"></div>
+    <button id="login-submit-btn" onclick="doLogin()" style="width:100%;background:#fff;color:#000;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px">Sign In</button>
+    <button id="reg-toggle-btn" onclick="toggleRegMode()" style="width:100%;background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer">Create Account</button>
+    <div style="margin-top:16px;padding:12px;background:rgba(255,255,255,.03);border-radius:8px;font-size:11px;color:rgba(255,255,255,.3);line-height:1.7;text-align:center">
+      Backend must be running at <code style="color:rgba(255,255,255,.4)">localhost:8000</code>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ADD VENDOR MODAL ══════════ -->
+<div id="add-vendor-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+  <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:30px;width:100%;max-width:440px;box-shadow:0 30px 60px rgba(0,0,0,.7)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
+      <div style="font-size:16px;font-weight:800;color:#fff">Add New Vendor</div>
+      <button onclick="closeAddVendorModal()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:18px;cursor:pointer;line-height:1">&times;</button>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Vendor Name *</label>
+      <input id="av-name" type="text" placeholder="e.g. ABC Construction LLC" onkeydown="if(event.key==='Enter')doAddVendor()"
+        style="width:100%;background:#161616;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:14px;outline:none;box-sizing:border-box">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div>
+        <label style="font-size:11px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Contact Name</label>
+        <input id="av-contact" type="text" placeholder="Jane Smith"
+          style="width:100%;background:#161616;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;outline:none;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">State</label>
+        <input id="av-state" type="text" placeholder="TX" maxlength="2"
+          style="width:100%;background:#161616;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;outline:none;box-sizing:border-box">
+      </div>
+    </div>
+    <div style="margin-bottom:18px">
+      <label style="font-size:11px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Email</label>
+      <input id="av-email" type="email" placeholder="vendor@company.com"
+        style="width:100%;background:#161616;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;outline:none;box-sizing:border-box">
+    </div>
+    <div id="av-error" style="color:#ef4444;font-size:12px;margin-bottom:12px;min-height:16px"></div>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeAddVendorModal()" style="flex:1;background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px;font-size:13px;cursor:pointer">Cancel</button>
+      <button onclick="doAddVendor()" style="flex:2;background:#fff;color:#000;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer">Create Vendor</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
+

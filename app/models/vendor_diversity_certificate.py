@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String, Date
 
-from app.models.base import BaseModel
+from app.models.base import Base
 
 
-class VendorDiversityCertificate(BaseModel):
+class VendorDiversityCertificate(Base):
     __tablename__ = "vendor_diversity_certificates"
 
     id = Column(Integer, primary_key=True, index=True)

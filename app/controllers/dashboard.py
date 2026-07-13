@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.db.database import get_db
+from app.database import get_sync_db
 from app.models.vendor_policy import VendorPolicy
 from app.models.vendor_diversity_certificate import (
     VendorDiversityCertificate,
@@ -18,7 +18,7 @@ router = APIRouter(
 
 @router.get("/")
 def dashboard(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     today = date.today()
 

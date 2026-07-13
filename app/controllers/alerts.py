@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.db.database import get_db
+from app.database import get_sync_db
 from app.services.alert_service import AlertService
 
 router = APIRouter(
@@ -12,7 +12,7 @@ router = APIRouter(
 
 @router.get("/")
 def get_all_alerts(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     return AlertService.get_all_alerts(db)
 
@@ -20,7 +20,7 @@ def get_all_alerts(
 @router.put("/{alert_id}/resolve")
 def resolve_alert(
     alert_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     alert = AlertService.resolve_alert(db, alert_id)
 

@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.repository.vendor_diversity_certificate import (
+from app.repositories.vendor_diversity_certificate import (
     VendorDiversityCertificateRepository,
 )
 from app.schemas.vendor_diversity_certificate import (

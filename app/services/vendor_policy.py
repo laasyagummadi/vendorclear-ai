@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.repository.vendor_policy import VendorPolicyRepository
+from app.repositories.vendor_policy import VendorPolicyRepository
 from app.schemas.vendor_policy import (
     VendorPolicyCreate,
     VendorPolicyUpdate,

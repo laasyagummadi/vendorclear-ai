@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.db.database import get_db
+from app.database import get_sync_db
 from app.schemas.vendor_policy import (
     VendorPolicyCreate,
     VendorPolicyUpdate,
@@ -19,14 +19,14 @@ router = APIRouter(
 @router.post("/", response_model=VendorPolicyResponse)
 def create_vendor_policy(
     policy: VendorPolicyCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     return VendorPolicyService.create_policy(db, policy)
 
 
 @router.get("/", response_model=List[VendorPolicyResponse])
 def get_all_vendor_policies(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     return VendorPolicyService.get_all_policies(db)
 
@@ -34,7 +34,7 @@ def get_all_vendor_policies(
 @router.get("/{policy_id}", response_model=VendorPolicyResponse)
 def get_vendor_policy(
     policy_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     return VendorPolicyService.get_policy_by_id(db, policy_id)
 
@@ -43,7 +43,7 @@ def get_vendor_policy(
 def update_vendor_policy(
     policy_id: int,
     policy: VendorPolicyUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     return VendorPolicyService.update_policy(
         db,
@@ -55,7 +55,7 @@ def update_vendor_policy(
 @router.delete("/{policy_id}")
 def delete_vendor_policy(
     policy_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     return VendorPolicyService.delete_policy(
         db,

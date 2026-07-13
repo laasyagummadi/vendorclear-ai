@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.db.database import get_db
+from app.database import get_sync_db
 
 from app.schemas.vendor_diversity_certificate import (
     VendorDiversityCertificateCreate,
@@ -23,7 +23,7 @@ router = APIRouter(
 @router.post("/", response_model=VendorDiversityCertificateResponse)
 def create_certificate(
     certificate: VendorDiversityCertificateCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     return VendorDiversityCertificateService.create_certificate(
         db,
@@ -33,7 +33,7 @@ def create_certificate(
 
 @router.get("/", response_model=List[VendorDiversityCertificateResponse])
 def get_all_certificates(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     return VendorDiversityCertificateService.get_all_certificates(db)
 
@@ -41,7 +41,7 @@ def get_all_certificates(
 @router.get("/{certificate_id}", response_model=VendorDiversityCertificateResponse)
 def get_certificate(
     certificate_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     return VendorDiversityCertificateService.get_certificate_by_id(
         db,
@@ -53,7 +53,7 @@ def get_certificate(
 def update_certificate(
     certificate_id: int,
     certificate: VendorDiversityCertificateUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     return VendorDiversityCertificateService.update_certificate(
         db,
@@ -65,7 +65,7 @@ def update_certificate(
 @router.delete("/{certificate_id}")
 def delete_certificate(
     certificate_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     return VendorDiversityCertificateService.delete_certificate(
         db,

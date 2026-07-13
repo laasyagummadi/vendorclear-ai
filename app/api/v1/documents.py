@@ -23,12 +23,31 @@ class AnalyzeRequest(BaseModel):
 @router.post("/upload", response_model=AnalysisOut, status_code=status.HTTP_201_CREATED)
 async def upload_document(
     file: UploadFile = File(...),
-    vendor_id: str = Form(...),
+    vendor_id: Optional[str] = Form(None),
+    vendor_name: Optional[str] = Form(None),
     doc_type_hint: str = Form("AUTO"),
     db: AsyncSession = Depends(get_db),
     user_id: str = Depends(get_current_user_id)
 ):
-    """Upload a compliance document (PDF/Image) for OCR extraction and Gemini evaluation."""
+    """Upload a compliance document. vendor_id OR vendor_name can be supplied.
+    If neither is given, the doc is uploaded to a general 'Unassigned' bucket."""
+    from sqlalchemy import select as sa_select
+    from app.models.vendor import Vendor, VendorStatus, RiskTier
+
+    # If no vendor_id supplied, find or create one by name
+    if not vendor_id:
+        name = (vendor_name or "Unassigned").strip()
+        result = await db.execute(sa_select(Vendor).where(Vendor.name == name))
+        existing = result.scalar_one_or_none()
+        if existing:
+            vendor_id = existing.id
+        else:
+            new_v = Vendor(name=name, status=VendorStatus.NEEDS_REVIEW, risk_tier=RiskTier.MEDIUM)
+            db.add(new_v)
+            await db.commit()
+            await db.refresh(new_v)
+            vendor_id = new_v.id
+
     controller = DocumentController(db)
     analysis = await controller.upload_and_analyze(
         file=file,
