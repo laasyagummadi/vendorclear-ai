@@ -20,7 +20,14 @@ export default function Auth({ onLogin }) {
         body: JSON.stringify({ email, password: pwd })
       })
       const data = await res.json()
-      if (!res.ok) { setLoginErr(data.detail || 'Login failed'); return }
+      if (!res.ok) {
+        let msg = data.error || data.detail || 'Login failed';
+        if (data.details && Array.isArray(data.details)) {
+          msg = data.details.map(d => `${d.field}: ${d.message}`).join(', ');
+        }
+        setLoginErr(msg);
+        return;
+      }
       setToken(data.access_token)
       onLogin()
     } catch (e) {
@@ -47,7 +54,14 @@ export default function Auth({ onLogin }) {
         body: JSON.stringify({ full_name: name, email, password, confirm_password: confirm })
       })
       const data = await res.json()
-      if (!res.ok) { setRegErr(data.detail || 'Registration failed'); return }
+      if (!res.ok) {
+        let msg = data.error || data.detail || 'Registration failed';
+        if (data.details && Array.isArray(data.details)) {
+          msg = data.details.map(d => `${d.field}: ${d.message}`).join(', ');
+        }
+        setRegErr(msg);
+        return;
+      }
       setTab('login')
       setLoginForm({ email, password })
       await doLogin(email, password)
