@@ -61,7 +61,7 @@ class DocumentRepository:
         result = await db.execute(
             select(Analysis)
             .where(Analysis.id == analysis_id)
-            .options(selectinload(Analysis.findings))
+            .options(selectinload(Analysis.findings), selectinload(Analysis.document))
         )
         return result.scalar_one_or_none()
 
@@ -73,6 +73,16 @@ class DocumentRepository:
             select(Analysis)
             .where(Analysis.document_id == document_id)
             .options(selectinload(Analysis.findings))
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def get_recent_analyses(db: AsyncSession, limit: int = 5) -> List[Analysis]:
+        result = await db.execute(
+            select(Analysis)
+            .order_by(Analysis.created_at.desc())
+            .limit(limit)
+            .options(selectinload(Analysis.findings), selectinload(Analysis.document))
         )
         return list(result.scalars().all())
 

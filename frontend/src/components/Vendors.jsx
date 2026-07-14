@@ -9,7 +9,9 @@ export default function Vendors({ navigate, toast }) {
   const [showCreate, setShowCreate] = useState(false)
 
   useEffect(() => {
-    api('GET', '/vendors?skip=0&limit=200').then(d => setVendors(d || [])).catch(() => setVendors([]))
+    api('GET', '/vendors?skip=0&limit=200')
+      .then(d => setVendors(d?.data || d || []))
+      .catch(() => setVendors([]))
   }, [])
 
   const filtered = filter
@@ -74,7 +76,9 @@ export default function Vendors({ navigate, toast }) {
           onCreated={() => {
             setShowCreate(false)
             toast('Vendor created successfully!', 'success')
-            api('GET', '/vendors?skip=0&limit=200').then(d => setVendors(d || [])).catch(() => {})
+            api('GET', '/vendors?skip=0&limit=200')
+              .then(d => setVendors(d?.data || d || []))
+              .catch(() => {})
           }}
         />
       )}

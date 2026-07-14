@@ -20,10 +20,10 @@ if _GEMINI_AVAILABLE and settings.gemini_api_key:
     try:
         genai.configure(api_key=settings.gemini_api_key)
         _model = genai.GenerativeModel(
-            "gemini-1.5-flash",
+            "gemini-2.0-flash-lite",
             generation_config={"response_mime_type": "application/json"},
         )
-        logger.info("Gemini 1.5 Flash model initialized")
+        logger.info("Gemini 2.0 Flash-Lite model initialized")
     except Exception as e:
         logger.warning(f"Gemini init failed, using mock: {e}")
 
@@ -65,30 +65,52 @@ Certificate Text:
 """
 
 
-async def extract_coi(raw_text: str) -> dict:
+# Fallback list of free models to try if quota is exceeded
+FALLBACK_MODELS = [
+    "gemini-2.0-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
+]
+
+async def _call_gemini_with_fallback(prompt: str, raw_text: str) -> dict:
+    """Tries multiple Gemini models sequentially to bypass free tier rate limits."""
+    if not _GEMINI_AVAILABLE or not settings.gemini_api_key or not raw_text.strip():
+        raise ValueError("No API key or empty text")
+
+    last_err = None
+    for model_name in FALLBACK_MODELS:
+        try:
+            logger.info(f"Attempting extraction with {model_name}...")
+            model = genai.GenerativeModel(
+                model_name,
+                generation_config={"response_mime_type": "application/json"}
+            )
+            response = await model.generate_content_async(prompt + raw_text)
+            data = json.loads(response.text)
+            data.setdefault("confidence_score", 0.90)
+            return data
+        except Exception as e:
+            logger.warning(f"Model {model_name} failed (likely rate limit): {e}")
+            last_err = e
+
+    raise last_err
+
+async def extract_coi(raw_text: str, file_path: str = None) -> dict:
     """Extract COI fields using Gemini; fall back to mock on failure."""
-    if _model and raw_text.strip():
-        try:
-            response = await _model.generate_content_async(COI_PROMPT + raw_text)
-            data = json.loads(response.text)
-            data.setdefault("confidence_score", 0.90)
-            return data
-        except Exception as e:
-            logger.warning(f"Gemini COI extraction failed: {e} — using mock")
-    return mock_extract_coi(raw_text)
+    try:
+        return await _call_gemini_with_fallback(COI_PROMPT, raw_text)
+    except Exception as e:
+        logger.warning(f"All Gemini models failed: {e} — using mock")
+        return mock_extract_coi(raw_text)
 
-
-async def extract_diversity(raw_text: str) -> dict:
+async def extract_diversity(raw_text: str, file_path: str = None) -> dict:
     """Extract diversity cert fields using Gemini; fall back to mock on failure."""
-    if _model and raw_text.strip():
-        try:
-            response = await _model.generate_content_async(DIVERSITY_PROMPT + raw_text)
-            data = json.loads(response.text)
-            data.setdefault("confidence_score", 0.90)
-            return data
-        except Exception as e:
-            logger.warning(f"Gemini diversity extraction failed: {e} — using mock")
-    return mock_extract_diversity(raw_text)
+    try:
+        return await _call_gemini_with_fallback(DIVERSITY_PROMPT, raw_text)
+    except Exception as e:
+        logger.warning(f"All Gemini models failed: {e} — using mock")
+        return mock_extract_diversity(raw_text)
 
 
 # ── Mock extractors (regex-based fallbacks) ───────────────────
@@ -120,7 +142,7 @@ def mock_extract_coi(text: str) -> dict:
     # Expiry date
     expiry = None
     m = re.search(
-        r"expir(?:ation|y|es)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})", text, re.IGNORECASE
+        r"expir(?:ation|y|es)(?:\s+date)?[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})", text, re.IGNORECASE
     )
     if m:
         expiry = _normalise_date(m.group(1))
@@ -171,7 +193,7 @@ def mock_extract_diversity(text: str) -> dict:
     # Expiry date
     expiry = None
     m = re.search(
-        r"expir(?:ation|y|es)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})", text, re.IGNORECASE
+        r"expir(?:ation|y|es)(?:\s+date)?[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})", text, re.IGNORECASE
     )
     if m:
         expiry = _normalise_date(m.group(1))

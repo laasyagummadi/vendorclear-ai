@@ -1,17 +1,12 @@
 import { useEffect } from 'react'
 
-export default function Toast({ toasts, setToasts }) {
+export default function Toast({ id, msg, type, onRemove }) {
   useEffect(() => {
-    if (!toasts.length) return
-    const t = setTimeout(() => setToasts(prev => prev.slice(1)), 3500)
+    const t = setTimeout(() => onRemove(id), 3500)
     return () => clearTimeout(t)
-  }, [toasts])
+  }, [id, onRemove])
 
   return (
-    <>
-      {toasts.map((t, i) => (
-        <div key={i} className={`toast ${t.type}`}>{t.msg}</div>
-      ))}
-    </>
+    <div className={`toast ${type}`}>{msg}</div>
   )
 }

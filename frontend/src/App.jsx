@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { getToken, setToken, api } from './api.js'
 import Auth from './components/Auth.jsx'
 import Sidebar from './components/Sidebar.jsx'
@@ -9,6 +9,7 @@ import AnalysisDetail from './components/AnalysisDetail.jsx'
 import Alerts from './components/Alerts.jsx'
 import Report from './components/Report.jsx'
 import Toast from './components/Toast.jsx'
+import Upload from './components/Upload.jsx'
 
 export default function App() {
   const [token, setTokenState] = useState(() => getToken())
@@ -18,10 +19,26 @@ export default function App() {
   const [toasts, setToasts] = useState([])
   const [alertCount, setAlertCount] = useState(0)
 
+  useEffect(() => {
+    if (token && !user) {
+      api('GET', '/auth/me')
+        .then(u => {
+          if (u) {
+            setUser(u)
+          } else {
+            logout()
+          }
+        })
+        .catch(() => {
+          logout()
+        })
+    }
+  }, [token, user])
+
   function login(tok, userObj) {
     setToken(tok)
     setTokenState(tok)
-    setUser(userObj)
+    if (userObj) setUser(userObj)
   }
 
   function logout() {
@@ -61,8 +78,9 @@ export default function App() {
     switch (page) {
       case 'dashboard':    return <Dashboard {...props} />
       case 'vendors':      return <Vendors {...props} />
-      case 'vendor-detail':return <VendorDetail vendorId={pageParam} {...props} />
-      case 'analysis':     return <AnalysisDetail analysisId={pageParam} {...props} />
+      case 'vendor-detail':return <VendorDetail id={pageParam} {...props} />
+      case 'upload':       return <Upload {...props} />
+      case 'analysis':     return <AnalysisDetail id={pageParam} {...props} />
       case 'alerts':       return <Alerts {...props} />
       case 'report':       return <Report {...props} />
       default:             return <Dashboard {...props} />

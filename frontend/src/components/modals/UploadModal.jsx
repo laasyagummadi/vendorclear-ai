@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react'
 import { api } from '../../api.js'
-import { getToken } from '../../api.js'
 
 export default function UploadModal({ vendorId, vendorName, onClose, onUploaded }) {
   const [file, setFile] = useState(null)
@@ -36,17 +35,13 @@ export default function UploadModal({ vendorId, vendorName, onClose, onUploaded 
     try {
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('doc_type', docType)
-      const res = await fetch(`/api/v1/vendors/${vendorId}/documents/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: fd,
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      fd.append('doc_type_hint', docType)
+      const data = await api('POST', `/vendors/${vendorId}/documents`, fd, true)
+      if (!data) throw new Error('Upload failed')
       onUploaded(data)
     } catch (ex) {
-      setErr(ex.message || 'Upload failed')
+      const msg = ex?.data?.detail || ex?.data?.error || ex?.message || 'Upload failed'
+      setErr(msg)
     } finally {
       setLoading(false)
     }

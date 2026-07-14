@@ -156,3 +156,6 @@ select.form-input option{background:#0a0a0a}
 .alert-error{background:#1a0808;border:1px solid #3d1515;color:#f87171}
 .upload-icon{font-size:32px;margin-bottom:10px}
 .upload-zone.dragover{border-color:#555;background:#111}
+
+.pulsing-text{animation:pulseText 1.5s ease-in-out infinite}
+@keyframes pulseText{0%{opacity:.7}50%{opacity:1}100%{opacity:.7}}

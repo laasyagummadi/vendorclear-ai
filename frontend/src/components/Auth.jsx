@@ -29,7 +29,7 @@ export default function Auth({ onLogin }) {
         return;
       }
       setToken(data.access_token)
-      onLogin()
+      onLogin(data.access_token)
     } catch (e) {
       setLoginErr('Cannot reach backend. Is it running on port 8000?')
     } finally { setLoginLoading(false) }

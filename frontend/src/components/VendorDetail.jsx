@@ -16,7 +16,7 @@ export default function VendorDetail({ id, navigate, toast }) {
       api('GET', `/vendors/${id}`),
       api('GET', `/vendors/${id}/documents`),
       api('GET', `/dashboard/vendors/${id}/score`),
-    ]).then(([v, d, s]) => { setVendor(v); setDocs(d || []); setScore(s) }).catch(() => {})
+    ]).then(([v, d, s]) => { setVendor(v); setDocs(d || []); setScore(s) }).catch((e) => { toast('Error loading vendor: ' + JSON.stringify(e), 'error') })
   }
 
   useEffect(() => { load() }, [id])
@@ -34,7 +34,7 @@ export default function VendorDetail({ id, navigate, toast }) {
   async function loadDocAnalysis(docId) {
     try {
       const analyses = await api('GET', `/vendors/${id}/documents/${docId}/analyses`)
-      if (analyses && analyses.length > 0) navigate('analysis-detail', analyses[0].id)
+      if (analyses && analyses.length > 0) navigate('analysis', analyses[0].id)
       else toast('No analysis available for this document yet.', 'info')
     } catch(e) { toast('Could not load analysis.', 'error') }
   }

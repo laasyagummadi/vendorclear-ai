@@ -20,6 +20,7 @@ class FindingOut(BaseModel):
 class AnalysisOut(BaseModel):
     id: str
     document_id: str
+    vendor_id: Optional[str] = None
     raw_text: Optional[str] = None
     extracted_fields: Optional[dict] = None
     confidence_score: float
