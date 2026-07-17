@@ -26,3 +26,14 @@ logs/
 .coverage
 htmlcov/
 .cov/
+
+# Node modules & frontend builds
+node_modules/
+frontend/node_modules/
+dist/
+build/
+
+# Databases
+*.db
+*.sqlite
+
