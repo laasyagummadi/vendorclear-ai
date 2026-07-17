@@ -1,12 +1,10 @@
 import { useEffect } from 'react'
 
-export default function Toast({ id, msg, type, onRemove }) {
+export default function Toast({ id, msg, type = 'success', onRemove }) {
   useEffect(() => {
     const t = setTimeout(() => onRemove(id), 3500)
     return () => clearTimeout(t)
   }, [id, onRemove])
 
-  return (
-    <div className={`toast ${type}`}>{msg}</div>
-  )
+  return <div className={`toast ${type}`}>{msg}</div>
 }

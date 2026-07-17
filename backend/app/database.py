@@ -10,17 +10,19 @@ from typing import AsyncGenerator
 from config import settings
 
 # ── Engine ────────────────────────────────────────────────────
-if settings.use_sqlite:
-    # Zero-config SQLite mode for local dev/demo
+# settings.database_url resolves in priority order:
+#   DATABASE_URL env var (hosted deployments) > USE_SQLITE > DB_* (MySQL)
+_url = settings.database_url
+
+if _url.startswith("sqlite"):
     engine = create_async_engine(
-        "sqlite+aiosqlite:///./vendorclear.db",
+        _url,
         echo=settings.debug,
         connect_args={"check_same_thread": False},
     )
 else:
-    # Production MySQL
     engine = create_async_engine(
-        settings.database_url,
+        _url,
         echo=settings.debug,
         pool_pre_ping=True,
         pool_size=10,

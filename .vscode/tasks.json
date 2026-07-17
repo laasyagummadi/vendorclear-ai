@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start VendorClear AI",
+      "type": "shell",
+      "command": "${workspaceFolder}\\START-windows.bat",
+      "windows": {
+        "options": {
+          "shell": {
+            "executable": "C:\\Windows\\System32\\cmd.exe",
+            "args": ["/d", "/c"]
+          }
+        }
+      },
+      "linux": {
+        "command": "bash",
+        "args": ["${workspaceFolder}/START-mac-linux.sh"]
+      },
+      "osx": {
+        "command": "bash",
+        "args": ["${workspaceFolder}/START-mac-linux.sh"]
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "focus": true
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    }
+  ]
+}

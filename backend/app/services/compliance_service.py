@@ -70,6 +70,10 @@ class ComplianceService:
         # Document counts
         total_docs = await self._count(Document)
         processed_docs = await self._count(Document, Document.status == DocumentStatus.PROCESSED)
+        pending_docs = await self._count(
+            Document, Document.status.in_([DocumentStatus.PENDING, DocumentStatus.PROCESSING])
+        )
+        failed_docs = await self._count(Document, Document.status == DocumentStatus.FAILED)
         coi_docs = await self._count(Document, Document.document_type == DocumentType.COI)
         diversity_docs = await self._count(
             Document, Document.document_type == DocumentType.DIVERSITY_CERT
@@ -93,10 +97,14 @@ class ComplianceService:
         # Compliance rate
         compliance_rate = round((compliant / total_vendors * 100), 1) if total_vendors > 0 else 0.0
 
+        # Compliance-issue alert count (non-compliant + needs-review vendors)
+        compliance_alert_count = needs_review + non_compliant
+
         return {
             "generated_at": datetime.utcnow().isoformat(),
             "vendors": {
                 "total": total_vendors,
+                "active": total_vendors,  # all counted vendors are active (is_active=True filter)
                 "compliant": compliant,
                 "needs_review": needs_review,
                 "non_compliant": non_compliant,
@@ -110,6 +118,8 @@ class ComplianceService:
             "documents": {
                 "total": total_docs,
                 "processed": processed_docs,
+                "pending": pending_docs,
+                "failed": failed_docs,
                 "coi_count": coi_docs,
                 "diversity_cert_count": diversity_docs,
             },
@@ -119,6 +129,9 @@ class ComplianceService:
                 "non_compliant": analysis_non_compliant,
             },
             "alerts": {
+                "total": len(expiring_soon) + compliance_alert_count,
+                "expiry": len(expiring_soon),
+                "compliance": compliance_alert_count,
                 "expiring_within_30_days": len(expiring_soon),
                 "expiring_within_7_days": len(expiring_critical),
             },
@@ -278,24 +291,42 @@ class ComplianceService:
         report_rows = []
         for v in vendors:
             score_data = await self.compute_vendor_score(v.id)
+            doc_count = await self._count(Document, Document.vendor_id == v.id)
             report_rows.append({
-                "vendor_id": v.id,
-                "vendor_name": v.name,
+                "id": v.id,
+                "name": v.name,
+                "email": v.email,
                 "status": v.status.value,
                 "risk_tier": v.risk_tier.value,
-                "compliance_score": score_data.get("total_score", 0),
+                "total_score": score_data.get("total_score", 0),
                 "grade": score_data.get("grade", "F"),
+                "document_count": doc_count,
                 "gl_expiry": v.gl_expiry,
                 "wc_expiry": v.wc_expiry,
                 "diversity_types": v.diversity_types or [],
             })
 
-        report_rows.sort(key=lambda r: r["compliance_score"], reverse=True)
+        report_rows.sort(key=lambda r: r["total_score"], reverse=True)
 
-        summary = await self.get_dashboard_summary()
+        # NOTE: previously this called self.get_dashboard_summary() in full
+        # (13 extra COUNT queries) just to read summary["vendors"]. Compute
+        # the handful of aggregates the report actually needs directly instead.
+        total_vendors = len(vendors)
+        compliant = sum(1 for v in vendors if v.status == VendorStatus.COMPLIANT)
+        non_compliant = sum(1 for v in vendors if v.status == VendorStatus.NON_COMPLIANT)
+        avg_score = (
+            round(sum(r["total_score"] for r in report_rows) / total_vendors, 1)
+            if total_vendors else 0.0
+        )
+
         return {
             "report_date": date.today().isoformat(),
-            "summary": summary["vendors"],
+            "summary": {
+                "total_vendors": total_vendors,
+                "compliant": compliant,
+                "non_compliant": non_compliant,
+                "avg_score": avg_score,
+            },
             "vendors": report_rows,
         }
 

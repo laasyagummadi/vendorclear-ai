@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 #  app/routes/auth.py  —  Authentication endpoints
 # ─────────────────────────────────────────────────────────────
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +15,7 @@ from app.schemas.auth import (
 from app.schemas.common import SuccessResponse
 from app.utils.security import decode_token
 from app.utils.exceptions import AuthenticationError
+from app.utils.rate_limit import limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 bearer_scheme = HTTPBearer()
@@ -39,7 +40,9 @@ async def get_current_user_id(
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user account",
 )
+@limiter.limit("10/minute")
 async def register(
+    request: Request,
     data: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ):
@@ -52,7 +55,9 @@ async def register(
     response_model=TokenResponse,
     summary="Login and get access + refresh tokens",
 )
+@limiter.limit("10/minute")
 async def login(
+    request: Request,
     data: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ):

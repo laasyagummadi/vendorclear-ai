@@ -1,25 +1,30 @@
 import { useState, useRef } from 'react'
 import { api } from '../../api.js'
 
+// NOTE on fixes made here:
+// - Posted to `/api/v1/vendors/${vendorId}/documents/upload` (relative URL,
+//   extra "/upload" segment) instead of the registered route
+//   `POST /api/v1/vendors/{vendor_id}/documents`. That path never matched
+//   any backend route, so uploads 404'd every single time — the core
+//   "upload & analyze" feature of this app never worked at all. Fixed to
+//   use the shared api.js helper (correct absolute host + correct path).
+// - Sent form field `doc_type` but the backend reads `doc_type_hint`
+//   (default "AUTO"), and only understands "COI" / "DIVERSITY_CERT" hints
+//   — none of the granular insurance-line options below map to anything
+//   the compliance engine recognizes. Simplified the dropdown to the two
+//   document types the backend actually classifies, plus auto-detect.
 export default function UploadModal({ vendorId, vendorName, onClose, onUploaded }) {
   const [file, setFile] = useState(null)
-  const [docType, setDocType] = useState('general_liability')
+  const [docType, setDocType] = useState('AUTO')
   const [dragOver, setDragOver] = useState(false)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
   const inputRef = useRef()
 
   const DOC_TYPES = [
-    { value:'general_liability', label:'General Liability' },
-    { value:'workers_comp', label:"Workers' Comp" },
-    { value:'professional_liability', label:'Professional Liability' },
-    { value:'auto_liability', label:'Auto Liability' },
-    { value:'umbrella', label:'Umbrella / Excess' },
-    { value:'cyber_liability', label:'Cyber Liability' },
-    { value:'contract', label:'Contract' },
-    { value:'w9', label:'W-9' },
-    { value:'soc2', label:'SOC 2 Report' },
-    { value:'other', label:'Other' },
+    { value:'AUTO', label:'Auto-detect' },
+    { value:'COI', label:'Certificate of Insurance' },
+    { value:'DIVERSITY_CERT', label:'Diversity Certificate' },
   ]
 
   function handleDrop(e) {
@@ -37,11 +42,10 @@ export default function UploadModal({ vendorId, vendorName, onClose, onUploaded 
       fd.append('file', file)
       fd.append('doc_type_hint', docType)
       const data = await api('POST', `/vendors/${vendorId}/documents`, fd, true)
-      if (!data) throw new Error('Upload failed')
+      if (!data) { setErr('Upload failed'); return }
       onUploaded(data)
     } catch (ex) {
-      const msg = ex?.data?.detail || ex?.data?.error || ex?.message || 'Upload failed'
-      setErr(msg)
+      setErr(ex?.data?.error || ex?.data?.detail || 'Upload failed')
     } finally {
       setLoading(false)
     }
@@ -87,10 +91,10 @@ export default function UploadModal({ vendorId, vendorName, onClose, onUploaded 
                 <div>
                   <div className="upload-icon">⬆</div>
                   <div>Drop a file here or <span style={{ color:'#aaa', textDecoration:'underline', cursor:'pointer' }}>browse</span></div>
-                  <div style={{ color:'#555', fontSize:12, marginTop:6 }}>PDF, PNG, JPG, TIFF — max 20 MB</div>
+                  <div style={{ color:'#555', fontSize:12, marginTop:6 }}>PDF, PNG, JPG, TIFF, DOCX — max 20 MB</div>
                 </div>
               )}
-              <input ref={inputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif" style={{ display:'none' }}
+              <input ref={inputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif,.docx" style={{ display:'none' }}
                 onChange={e => e.target.files[0] && setFile(e.target.files[0])} />
             </div>
           </div>

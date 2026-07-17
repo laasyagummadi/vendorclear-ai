@@ -7,12 +7,22 @@ export default function Vendors({ navigate, toast }) {
   const [vendors, setVendors] = useState([])
   const [filter, setFilter] = useState('')
   const [showCreate, setShowCreate] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    api('GET', '/vendors?skip=0&limit=200')
-      .then(d => setVendors(d?.data || d || []))
+  // NOTE: previously this used ?skip=0&limit=200 (not a param the backend
+  // recognizes — it uses page/page_size) and did setVendors(d || []) where
+  // `d` was the *entire* paginated envelope { success, data, total, page,
+  // page_size, total_pages }, not a bare array. Calling .filter()/.map() on
+  // that object crashed this page every single time it was opened.
+  function loadVendors() {
+    setLoading(true)
+    api('GET', '/vendors?page=1&page_size=100')
+      .then(res => setVendors(res?.data || []))
       .catch(() => setVendors([]))
-  }, [])
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { loadVendors() }, [])
 
   const filtered = filter
     ? vendors.filter(v => v.name?.toLowerCase().includes(filter.toLowerCase()) ||
@@ -38,7 +48,9 @@ export default function Vendors({ navigate, toast }) {
       </div>
 
       <div className="card" style={{ padding:0, overflow:'hidden' }}>
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="empty-state"><div className="spinner" style={{ width:24, height:24, borderWidth:3, margin:'24px auto' }} /></div>
+        ) : filtered.length === 0 ? (
           <div className="empty-state">
             <div className="icon">🏢</div>
             <p style={{ color:'#555' }}>{filter ? 'No vendors match your search.' : 'No vendors yet.'}</p>
@@ -76,9 +88,7 @@ export default function Vendors({ navigate, toast }) {
           onCreated={() => {
             setShowCreate(false)
             toast('Vendor created successfully!', 'success')
-            api('GET', '/vendors?skip=0&limit=200')
-              .then(d => setVendors(d?.data || d || []))
-              .catch(() => {})
+            loadVendors()
           }}
         />
       )}

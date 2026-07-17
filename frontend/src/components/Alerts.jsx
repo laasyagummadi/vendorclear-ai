@@ -35,7 +35,7 @@ export default function Alerts({ navigate }) {
               <div key={i} className="alert-item" style={{ borderLeft:`3px solid ${a.days_until_expiry<=7?'#f87171':'#fbbf24'}` }}>
                 <div className="alert-item-title">{a.vendor_name}</div>
                 <div className="alert-item-sub">
-                  {a.document_type || ''} expires in <strong style={{ color:a.days_until_expiry<=7?'#f87171':'#fbbf24' }}>{a.days_until_expiry} days</strong>
+                  {a.coverage_type || ''} expires in <strong style={{ color:a.days_until_expiry<=7?'#f87171':'#fbbf24' }}>{a.days_until_expiry} days</strong>
                 </div>
                 <div className="alert-item-sub mt-1">Expires: {fmtDate(a.expiry_date)}</div>
               </div>

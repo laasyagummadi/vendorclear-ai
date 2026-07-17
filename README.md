@@ -1,306 +1,216 @@
 # VendorClear AI — Vendor Intelligence Platform
 
-> AI-powered vendor compliance and vendor intelligence platform for enterprise utility companies.  
-> Built with React + Vite (frontend) and Node.js + Express + Gemini AI (backend).
+> AI-powered vendor compliance and vendor intelligence platform.
+> Built with **FastAPI + SQLAlchemy** (backend) and **React + Vite** (frontend).
+
+---
+
+## ⚡ Quick Start (do this first)
+
+**Do not open any `.html` file directly in your browser.** This app has a real backend and frontend that both need to be running — opening a file from your Downloads/Desktop folder will always show "Cannot reach backend," because no server is running yet.
+
+### Windows
+Double-click **`START-windows.bat`** in this folder. It installs everything it needs (Python packages, Node packages) the first time, seeds demo data, starts both servers, and opens your browser automatically. Leave the two black terminal windows it opens running while you use the app.
+
+### Mac / Linux
+```bash
+./START-mac-linux.sh
+```
+Same thing — first run installs dependencies and seeds demo data, then starts both servers and opens your browser.
+
+### Either way, once it's running:
+- App: **http://localhost:3000**
+- API docs: **http://localhost:8000/api/docs**
+- Demo login: **demo@vendorclear.ai** / **DemoPass123** — or just click **Register** to create your own account (it's saved for real, in the database, immediately)
+
+If port 3000 or 8000 is already in use by something else on your machine, stop that other program first, or edit the port in `frontend/vite.config.js` and `backend/.env`.
 
 ---
 
 ## Project Overview
 
-VendorClear AI automates the analysis of Certificates of Insurance (COI) and Vendor Diversity Certificates using Google Gemini AI. It extracts structured data from documents, applies rule-based compliance validation, calculates risk scores, and provides real-time dashboards and alerts for procurement and compliance teams.
+VendorClear AI automates the analysis of Certificates of Insurance (COI) and Vendor Diversity Certificates. It extracts structured data from uploaded documents, applies rule-based compliance validation, calculates risk scores, and provides dashboards and alerts for procurement and compliance teams.
 
 **Core capabilities:**
-- AI document analysis (COI, diversity certificates, general compliance docs)
+- AI-assisted document analysis (COI, diversity certificates) — uses Google Gemini if you provide an API key, otherwise falls back to a built-in regex extractor so the app works out of the box with no external account needed
 - Insurance verification against configurable coverage thresholds
 - Vendor diversity certification tracking (MBE, WBE, DBE, SBE, VOSB, HUBZone)
 - Risk scoring engine (0–100, tiered Low / Medium / High)
-- Proactive expiry alerts with configurable lead times
-- Compliance trend analytics and board-ready reports
-- Natural-language AI assistant for vendor queries
+- Proactive expiry alerts
+- Compliance trend analytics and reports
+
+> **Not yet implemented:** a natural-language chat assistant has been discussed but does not exist in this codebase yet (no route, no UI). Everything else on this list is real and tested.
 
 ---
 
 ## Architecture
 
 ```
-Browser (React SPA)
-       │  HTTP/JSON
+Browser (React SPA, port 3000)
+       │  HTTP/JSON  (Vite dev proxy → :8000 in dev; same-origin in prod)
        ▼
-Express API  (Node.js)
-  ├─ Multer        → secure file upload
-  ├─ Gemini AI     → document extraction
-  ├─ Compliance Engine → rule-based validation
-  └─ In-memory store  → (swap for PostgreSQL/MongoDB in prod)
+FastAPI (Python, port 8000)
+  ├─ SQLAlchemy (async) → SQLite (dev, zero-config) or MySQL (production)
+  ├─ JWT auth (python-jose + bcrypt)
+  ├─ Gemini AI or regex fallback → document extraction
+  ├─ Compliance rules engine → risk scoring
+  └─ slowapi → rate limiting on auth/upload endpoints
 ```
-
----
 
 ## Folder Structure
 
 ```
 vendorclear-ai/
-├── client/                         # React + Vite frontend
-│   ├── index.html
-│   ├── vite.config.js
-│   ├── tailwind.config.js
-│   └── src/
-│       ├── main.jsx
-│       ├── App.jsx
-│       ├── index.css
-│       ├── components/
-│       │   ├── layout/
-│       │   │   ├── Sidebar.jsx
-│       │   │   ├── Navbar.jsx
-│       │   │   └── AppLayout.jsx
-│       │   ├── ui/
-│       │   │   ├── Button.jsx
-│       │   │   ├── Badge.jsx
-│       │   │   ├── Card.jsx
-│       │   │   ├── Toast.jsx
-│       │   │   └── Modal.jsx
-│       │   └── dashboard/
-│       │       ├── StatCard.jsx
-│       │       ├── RiskMeter.jsx
-│       │       └── Charts.jsx
-│       ├── pages/
-│       │   ├── Landing.jsx
-│       │   ├── Dashboard.jsx
-│       │   ├── Vendors.jsx
-│       │   ├── Upload.jsx
-│       │   ├── Analysis.jsx
-│       │   ├── Reports.jsx
-│       │   ├── Alerts.jsx
-│       │   ├── Analytics.jsx
-│       │   └── Settings.jsx
-│       ├── hooks/
-│       │   ├── useTheme.js
-│       │   ├── useToast.js
-│       │   └── useAnalysis.js
-│       ├── services/
-│       │   └── api.js               # Axios wrapper for all API calls
-│       └── utils/
-│           └── helpers.js
-│
-├── server/                          # Node.js + Express backend
-│   ├── index.js                     # ← server_index.js
-│   ├── package.json                 # ← server_package.json
-│   ├── .env                         # ← copy from server_env_example.txt
-│   ├── config/
-│   │   └── index.js                 # ← server_config.js
-│   ├── middleware/
-│   │   ├── logger.js                # ← server_logger.js
-│   │   ├── errorHandler.js          # ← server_errorHandler.js
-│   │   ├── rateLimit.js             # ← server_rateLimit.js
-│   │   └── uploadMiddleware.js      # ← server_uploadMiddleware.js
-│   ├── services/
-│   │   ├── geminiService.js         # ← server_geminiService.js
-│   │   └── complianceEngine.js      # ← server_complianceEngine.js
-│   ├── controllers/
-│   │   └── index.js                 # ← server_controllers.js
-│   ├── routes/
-│   │   └── index.js                 # ← server_routes.js
-│   ├── uploads/                     # auto-created at runtime
-│   └── logs/                        # auto-created at runtime
-│
-└── README.md
+├── START-windows.bat        # one-click launcher (Windows)
+├── START-mac-linux.sh       # one-click launcher (Mac/Linux)
+├── backend/                 # FastAPI app
+│   ├── main.py
+│   ├── config.py
+│   ├── requirements.txt
+│   ├── app/
+│   │   ├── models/          # SQLAlchemy ORM models
+│   │   ├── routes/          # API endpoints
+│   │   ├── controllers/     # request handling / orchestration
+│   │   ├── services/        # Gemini, OCR, compliance engine
+│   │   ├── repositories/    # DB queries
+│   │   └── schemas/         # Pydantic request/response models
+│   ├── scripts/seed_data.py # demo data
+│   ├── alembic/              # DB migrations
+│   └── tests/                # pytest suite (74 tests)
+└── frontend/                 # React + Vite app
+    └── src/
+        ├── components/       # pages + modals
+        ├── api.js            # fetch wrapper
+        └── test/              # vitest suite (34 tests)
 ```
-
-> **Note:** The delivered backend files are prefixed `server_` (e.g. `server_index.js`).  
-> Rename and place them in the folder structure above before running.
 
 ---
 
-## Installation
+## Manual Setup (if you'd rather not use the START script)
 
 ### Prerequisites
-- Node.js ≥ 18.0.0
-- npm ≥ 9.0.0
-- Google Gemini API key ([get one free](https://aistudio.google.com/app/apikey))
+- Python 3.11+
+- Node.js 18+
 
-### 1 · Clone / set up folders
-
+### Backend
 ```bash
-mkdir vendorclear-ai && cd vendorclear-ai
-mkdir -p server/config server/middleware server/services server/controllers server/routes server/uploads server/logs
+cd backend
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate.bat
+pip install -r requirements.txt
+cp .env.example .env            # already defaults to SQLite, no MySQL needed
+python -m scripts.seed_data     # optional: adds 10 demo vendors + a demo login
+python -m uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
-### 2 · Place backend files
-
-Rename the delivered `server_*.js` files and move them into the structure above:
-
-| Delivered file             | → Place at                            |
-|----------------------------|---------------------------------------|
-| `server_index.js`          | `server/index.js`                     |
-| `server_package.json`      | `server/package.json`                 |
-| `server_config.js`         | `server/config/index.js`              |
-| `server_logger.js`         | `server/middleware/logger.js`         |
-| `server_errorHandler.js`   | `server/middleware/errorHandler.js`   |
-| `server_rateLimit.js`      | `server/middleware/rateLimit.js`      |
-| `server_uploadMiddleware.js` | `server/middleware/uploadMiddleware.js` |
-| `server_geminiService.js`  | `server/services/geminiService.js`    |
-| `server_complianceEngine.js` | `server/services/complianceEngine.js` |
-| `server_controllers.js`    | `server/controllers/index.js`         |
-| `server_routes.js`         | `server/routes/index.js`              |
-
-### 3 · Install dependencies
-
+### Frontend
 ```bash
-cd server
+cd frontend
 npm install
+npm run dev
+```
+Then open **http://localhost:3000**.
+
+### Running the test suites
+```bash
+cd backend && pytest              # 74 tests
+cd frontend && npm test           # 34 tests
 ```
 
 ---
 
-## Environment Variables
+## 🚀 Deploying to the Internet
 
-Copy `server_env_example.txt` → `server/.env` and fill in your values:
+The repo ships with a **Dockerfile** that builds the frontend and serves the whole app (frontend + API) as **one service** — no CORS setup, one URL. It works on any Docker host; the easiest free option is Render:
+
+### Deploy to Render (free tier)
+1. Push this folder to a GitHub repository (it already includes `render.yaml`).
+2. Go to [render.com](https://render.com) → **New → Blueprint** → connect your repo.
+3. Render reads `render.yaml`, builds the Docker image, generates a `SECRET_KEY`, and deploys.
+4. Your app is live at `https://<your-service>.onrender.com` — registration, login, vendors, uploads, everything.
+
+**Data persistence note:** the default deploy uses SQLite on the container's disk, which is **wiped whenever the service redeploys or restarts** (fine for demos). For permanent data, create a free Postgres database (e.g. [Neon](https://neon.tech) or Render's own Postgres) and set its connection string as a `DATABASE_URL` environment variable in the Render dashboard — the app detects it automatically and uses it instead of SQLite. Tables are created on first startup; no manual migration step needed.
+
+### Deploy anywhere else (Railway, Fly.io, a VPS…)
+```bash
+docker build -t vendorclear-ai .
+docker run -p 8000:8000 -e SECRET_KEY=$(openssl rand -hex 32) vendorclear-ai
+```
+Then open port 8000. Set `DATABASE_URL` for a hosted database, same as above.
+
+### Production checklist
+- `SECRET_KEY` — must be a strong random value (Render's blueprint generates one automatically)
+- `APP_ENV=production` and `DEBUG=false` (the Dockerfile defaults to these)
+- `DATABASE_URL` — set it if you need data to survive restarts
+- CORS: not needed in this setup — frontend and API share one origin
+
+---
+
+## Environment Variables (`backend/.env`)
 
 ```env
-PORT=5000
-NODE_ENV=development
-GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-1.5-flash
-CLIENT_ORIGIN=http://localhost:5173
-UPLOAD_DIR=./uploads
-MAX_FILE_SIZE_MB=20
-RATE_LIMIT_WINDOW_MIN=15
-RATE_LIMIT_MAX_REQUESTS=100
-ANALYZE_RATE_LIMIT_MAX=10
-LOG_LEVEL=info
+APP_ENV=development
+USE_SQLITE=true                 # zero-config local dev; set false + fill in DB_* for MySQL
+SECRET_KEY=change-me-to-a-random-secret-before-going-live
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+ALLOWED_ORIGINS=["http://localhost:3000"]
+RATE_LIMIT_PER_MINUTE=100
+GEMINI_API_KEY=                 # optional — leave blank to use the built-in extractor
 ```
 
----
-
-## Gemini API Setup
-
-1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Click **Create API Key**
-3. Copy the key into your `.env` as `GEMINI_API_KEY`
-4. The default model is `gemini-1.5-flash` (fast, free tier available)
-5. For higher accuracy, change to `gemini-1.5-pro` in `.env`
-
-> **Without an API key**, the server runs in **mock mode** — it returns realistic sample COI and diversity cert extractions so you can develop the frontend without a Gemini account.
-
----
-
-## Run Backend
-
-```bash
-# Development (auto-restart on file changes)
-cd server
-npm run dev
-
-# Production
-npm start
-```
-
-Server starts on `http://localhost:5000` by default.
-
----
-
-## Run Frontend
-
-```bash
-cd client
-npm install
-npm run dev
-```
-
-Frontend starts on `http://localhost:5173`.
-
----
-
-## Build for Production
-
-```bash
-# Frontend
-cd client && npm run build        # outputs to client/dist/
-
-# Backend — set NODE_ENV=production in .env, then:
-cd server && npm start
-```
-
-For production deployment, serve the `client/dist/` folder via Nginx or a CDN, and run the Express server behind a reverse proxy.
+For production: set `USE_SQLITE=false`, fill in `DB_HOST`/`DB_USER`/`DB_PASSWORD`/`DB_NAME` for your MySQL instance, then run `alembic upgrade head` in `backend/` to create the schema.
 
 ---
 
 ## API Reference
 
-| Method | Endpoint              | Description                              |
-|--------|-----------------------|------------------------------------------|
-| GET    | `/api/health`         | Health check                             |
-| POST   | `/api/upload`         | Upload document (multipart/form-data, field: `document`) |
-| POST   | `/api/analyze`        | Analyze document with Gemini AI          |
-| GET    | `/api/analysis/:id`   | Retrieve analysis result by ID           |
-| POST   | `/api/evaluate`       | Run compliance rules on extracted JSON   |
-| GET    | `/api/dashboard`      | Dashboard stats, trends, risk breakdown  |
-| GET    | `/api/vendors`       | Vendor list (filterable, paginated)   |
-| GET    | `/api/alerts`         | Active compliance alerts                 |
-| GET    | `/api/reports`        | Compliance report summary                |
+| Method | Endpoint                                   | Description                    |
+|--------|---------------------------------------------|---------------------------------|
+| POST   | `/api/v1/auth/register`                     | Create an account               |
+| POST   | `/api/v1/auth/login`                        | Get access + refresh tokens     |
+| GET    | `/api/v1/auth/me`                           | Current user profile            |
+| GET    | `/api/v1/vendors`                           | List vendors (paginated, filterable) |
+| POST   | `/api/v1/vendors`                           | Create a vendor                 |
+| GET    | `/api/v1/vendors/{id}`                      | Vendor detail                   |
+| PATCH  | `/api/v1/vendors/{id}`                      | Update a vendor                 |
+| POST   | `/api/v1/vendors/{id}/documents`            | Upload + analyze a document     |
+| GET    | `/api/v1/analyses/{id}`                     | Analysis result + findings      |
+| GET    | `/api/v1/dashboard/summary`                 | Dashboard stats                 |
+| GET    | `/api/v1/dashboard/compliance-report`       | Full compliance report          |
+| GET    | `/api/v1/alerts`                            | Expiry + compliance alerts      |
 
-### Example: Upload + Analyze
-
-```bash
-# Step 1: Upload file
-curl -X POST http://localhost:5000/api/upload \
-  -F "document=@/path/to/acme-coi.pdf"
-# → { "data": { "id": "uuid-here", ... } }
-
-# Step 2: Analyze with Gemini
-curl -X POST http://localhost:5000/api/analyze \
-  -H "Content-Type: application/json" \
-  -d '{ "uploadId": "uuid-here", "documentTypeHint": "COI" }'
-# → { "data": { "status": "COMPLIANT", "riskScore": 88, ... } }
-```
-
-### Example: Paste raw text
-
-```bash
-curl -X POST http://localhost:5000/api/analyze \
-  -H "Content-Type: application/json" \
-  -d '{
-    "rawText": "CERTIFICATE OF INSURANCE ... [full document text]",
-    "documentTypeHint": "COI"
-  }'
-```
+Full interactive docs (try requests live): **http://localhost:8000/api/docs**
 
 ---
 
 ## Compliance Rules
 
-The compliance engine applies these rules automatically:
+| Rule                    | Severity | Trigger                                   |
+|--------------------------|----------|---------------------------------------------|
+| MISSING_GL_LIMIT         | —        | No General Liability limit found            |
+| LOW_GL_LIMIT              | —        | GL below the configured threshold           |
+| DOCUMENT_EXPIRED          | CRITICAL | Expiry date is in the past                   |
+| MISSING_EXPIRY_DATE       | HIGH     | No expiry date found                        |
+| MISSING_OWNERSHIP_PERCENT | HIGH     | Diversity cert missing ownership %          |
+| LOW_OWNERSHIP_PERCENT     | HIGH     | Ownership below 51%                          |
+| LOW_CONFIDENCE            | MEDIUM   | Extraction confidence below 70%              |
 
-| Rule                  | Severity | Trigger                                      | Score Impact |
-|-----------------------|----------|----------------------------------------------|-------------|
-| GL_MISSING            | CRITICAL | No General Liability policy found            | −40         |
-| GL_EXPIRED            | CRITICAL | GL policy expiry date is in the past         | −40         |
-| GL_EXPIRING_SOON      | WARNING  | GL expires within 30 days                   | −15         |
-| GL_BELOW_THRESHOLD    | HIGH     | GL aggregate < $2,000,000                   | −25         |
-| WC_MISSING            | HIGH     | No Workers Comp policy found                 | −20         |
-| WC_EXPIRED            | CRITICAL | WC policy expired                            | −30         |
-| AUTO_BELOW_THRESHOLD  | MEDIUM   | Auto CSL < $500,000                         | −10         |
-| NO_ADDITIONAL_INSURED | MEDIUM   | Company not listed as Additional Insured     | −8          |
-| CERT_EXPIRED          | CRITICAL | Diversity cert expiry date is in the past    | −50         |
-| LOW_OWNERSHIP         | HIGH     | Ownership < 51%                             | −25         |
-
-**Status mapping:**
-- Any CRITICAL finding → `NON_COMPLIANT`
-- Any HIGH finding or score < 70 → `NEEDS_REVIEW`
-- No HIGH/CRITICAL findings → `COMPLIANT`
+**Status mapping:** any CRITICAL finding → `NON_COMPLIANT`; any HIGH finding or score < 70 → `NEEDS_REVIEW`; otherwise → `COMPLIANT`.
 
 ---
 
 ## Tech Stack
 
-| Layer      | Technology                              |
-|------------|-----------------------------------------|
-| Frontend   | React 18, Vite, TailwindCSS, Framer Motion, Chart.js |
-| Backend    | Node.js 18+, Express 4, Multer          |
-| AI         | Google Gemini 1.5 Flash / Pro           |
-| Security   | Helmet, CORS, express-rate-limit        |
-| Logging    | Winston                                 |
-| Validation | express-validator                       |
+| Layer      | Technology                                       |
+|------------|---------------------------------------------------|
+| Frontend   | React 18, Vite, Chart.js                          |
+| Backend    | Python 3.11+, FastAPI, SQLAlchemy (async)          |
+| Database   | SQLite (dev) / MySQL (production)                  |
+| AI         | Google Gemini (optional) with regex fallback       |
+| Auth       | JWT (python-jose), bcrypt                          |
+| Security   | CORS, slowapi rate limiting, file upload sandboxing|
+| Testing    | pytest (backend, 74 tests), Vitest + RTL (frontend, 34 tests) |
 
 ---
 
-*© 2026 VendorClear AI, Inc. — Vendor Intelligence, Clarity Assured.*
+*© 2026 VendorClear AI — Vendor Intelligence, Clarity Assured.*

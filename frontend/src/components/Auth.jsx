@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { setToken } from '../api.js'
-
-const API_BASE = 'http://localhost:8000/api/v1'
+import { api, setToken } from '../api.js'
 
 export default function Auth({ onLogin }) {
   const [tab, setTab] = useState('login')
@@ -12,26 +10,22 @@ export default function Auth({ onLogin }) {
   const [loginLoading, setLoginLoading] = useState(false)
   const [regLoading, setRegLoading] = useState(false)
 
+  // NOTE: previously this called onLogin() with no arguments, but App.jsx's
+  // login(tok, userObj) needs both to update its React state. That meant a
+  // successful login/register never actually navigated into the app — the
+  // token was stored in localStorage (so a manual refresh "fixed" it) but
+  // the UI stayed stuck on the auth screen. Fixed by fetching /auth/me and
+  // passing both values through.
   async function doLogin(email, pwd) {
     setLoginLoading(true); setLoginErr('')
     try {
-      const res = await fetch(API_BASE + '/auth/login', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: pwd })
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        let msg = data.error || data.detail || 'Login failed';
-        if (data.details && Array.isArray(data.details)) {
-          msg = data.details.map(d => `${d.field}: ${d.message}`).join(', ');
-        }
-        setLoginErr(msg);
-        return;
-      }
+      const data = await api('POST', '/auth/login', { email, password: pwd })
+      if (!data) { setLoginErr('Login failed'); return }
       setToken(data.access_token)
-      onLogin(data.access_token)
+      const user = await api('GET', '/auth/me')
+      onLogin(data.access_token, user)
     } catch (e) {
-      setLoginErr('Cannot reach backend. Is it running on port 8000?')
+      setLoginErr(e?.data?.error || e?.data?.detail || 'Cannot reach backend. Is it running on port 8000?')
     } finally { setLoginLoading(false) }
   }
 
@@ -49,24 +43,14 @@ export default function Auth({ onLogin }) {
     if (password !== confirm) { setRegErr('Passwords do not match'); return }
     setRegLoading(true); setRegErr('')
     try {
-      const res = await fetch(API_BASE + '/auth/register', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_name: name, email, password, confirm_password: confirm })
+      await api('POST', '/auth/register', {
+        full_name: name, email, password, confirm_password: confirm,
       })
-      const data = await res.json()
-      if (!res.ok) {
-        let msg = data.error || data.detail || 'Registration failed';
-        if (data.details && Array.isArray(data.details)) {
-          msg = data.details.map(d => `${d.field}: ${d.message}`).join(', ');
-        }
-        setRegErr(msg);
-        return;
-      }
       setTab('login')
       setLoginForm({ email, password })
       await doLogin(email, password)
     } catch (e) {
-      setRegErr('Cannot reach backend')
+      setRegErr(e?.data?.error || e?.data?.detail || (e?.data?.details && e.data.details[0]?.message) || 'Cannot reach backend')
     } finally { setRegLoading(false) }
   }
 

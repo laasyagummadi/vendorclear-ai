@@ -1,13 +1,6 @@
-# Virtual Environment
-.venv/
-venv/
-env/
-ENV/
-
-# Python Cache
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.pyo
 *.egg-info/
 .eggs/
@@ -16,18 +9,19 @@ build/
 *.egg
 .Python
 
-# Environment variables & secrets
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment variables (NEVER commit)
 .env
 .env.local
 .env.production
 *.env
 
-# Local upload storage
-uploads/
-backend/uploads/
-
-# Local databases & MySQL data
-tmp-db-data/
+# SQLite databases (dev artifact)
 *.db
 *.db-journal
 *.sqlite
@@ -36,29 +30,36 @@ tmp-db-data/
 # Logs
 logs/
 *.log
-npm-debug.log*
 
 # Node / React
 node_modules/
+npm-debug.log*
+dist/
 .vite/
 
-# Pytest cache & coverage
-.pytest_cache/
-.coverage
-coverage/
-htmlcov/
-.cov/
+# Uploads (runtime)
+backend/uploads/
+uploads/
 
 # OS files
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Editor / IDEs
-.vscode/
+# Editor
+.vscode/settings.json
 .idea/
 *.swp
 *.swo
+
+# Testing
+.pytest_cache/
+coverage/
+htmlcov/
+.coverage
+
+# Alembic env (has secrets)
+# alembic.ini is fine to commit (no secrets)
 
 # Temp / scratch files
 tmp/

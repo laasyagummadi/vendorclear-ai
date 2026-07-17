@@ -2,14 +2,11 @@ import { useState, useEffect } from 'react'
 import { api } from '../api.js'
 import { fmtDate, fmtMoney, analysisBadgeClass, severityBadgeClass } from '../helpers.js'
 
-export default function AnalysisDetail({ id, navigate, toast }) {
+export default function AnalysisDetail({ id, navigate }) {
   const [analysis, setAnalysis] = useState(null)
-  const [showRaw, setShowRaw] = useState(false)
 
   useEffect(() => {
-    api('GET', `/analyses/${id}`)
-      .then(setAnalysis)
-      .catch(e => { if (toast) toast('Error loading analysis: ' + (e?.message || e), 'error'); setAnalysis(null) })
+    api('GET', `/analyses/${id}`).then(setAnalysis).catch(() => setAnalysis(null))
   }, [id])
 
   if (!analysis) return (
@@ -63,18 +60,7 @@ export default function AnalysisDetail({ id, navigate, toast }) {
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:20 }}>
         <div className="card">
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-            <div style={{ fontSize:13, fontWeight:600, color:'#777', textTransform:'uppercase', letterSpacing:'.06em' }}>Extracted Fields</div>
-            <button className="btn btn-ghost btn-sm" onClick={() => {
-              const dataStr = JSON.stringify(analysis.extracted_fields || {}, null, 2)
-              navigator.clipboard.writeText(dataStr)
-                .then(() => toast && toast('Data copied to clipboard!', 'success'))
-                .catch(() => toast && toast('Failed to copy', 'error'))
-            }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight:6 }}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-              Copy JSON
-            </button>
-          </div>
+          <div style={{ fontSize:13, fontWeight:600, color:'#777', marginBottom:14, textTransform:'uppercase', letterSpacing:'.06em' }}>Extracted Fields</div>
           {fields.length === 0
             ? <div style={{ color:'#333', fontSize:12 }}>No fields extracted.</div>
             : fields.map(([k,v]) => (
@@ -107,17 +93,10 @@ export default function AnalysisDetail({ id, navigate, toast }) {
 
       {analysis.raw_text && (
         <div className="card">
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-            <div style={{ fontSize:13, fontWeight:600, color:'#777', textTransform:'uppercase', letterSpacing:'.06em' }}>Raw OCR Text</div>
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowRaw(!showRaw)}>
-              {showRaw ? 'Hide Text' : 'View Raw Text'}
-            </button>
-          </div>
-          {showRaw && (
-            <pre style={{ fontSize:11, color:'#444', whiteSpace:'pre-wrap', wordBreak:'break-word', maxHeight:240, overflowY:'auto', lineHeight:1.6, borderTop:'1px solid #1a1a1a', paddingTop:12 }}>
-              {analysis.raw_text.substring(0,2000)}{analysis.raw_text.length>2000?'\n…':''}
-            </pre>
-          )}
+          <div style={{ fontSize:13, fontWeight:600, color:'#777', marginBottom:12, textTransform:'uppercase', letterSpacing:'.06em' }}>Raw OCR Text</div>
+          <pre style={{ fontSize:11, color:'#444', whiteSpace:'pre-wrap', wordBreak:'break-word', maxHeight:240, overflowY:'auto', lineHeight:1.6 }}>
+            {analysis.raw_text.substring(0,2000)}{analysis.raw_text.length>2000?'\n…':''}
+          </pre>
         </div>
       )}
     </div>

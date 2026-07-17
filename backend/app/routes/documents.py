@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 #  app/routes/documents.py  —  Document upload & listing
 # ─────────────────────────────────────────────────────────────
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -10,6 +10,7 @@ from app.controllers.document_controller import DocumentController
 from app.repositories.document_repository import DocumentRepository
 from app.schemas.document import DocumentOut, UploadResponse
 from app.schemas.analysis import AnalysisOut
+from app.utils.rate_limit import limiter
 
 router = APIRouter(
     prefix="/vendors/{vendor_id}/documents",
@@ -18,7 +19,9 @@ router = APIRouter(
 
 
 @router.post("", response_model=UploadResponse, status_code=201)
+@limiter.limit("20/minute")
 async def upload_document(
+    request: Request,
     vendor_id: str,
     file: UploadFile = File(...),
     doc_type_hint: str = Form(default="AUTO"),

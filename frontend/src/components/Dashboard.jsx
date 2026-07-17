@@ -21,10 +21,10 @@ export default function Dashboard({ navigate, toast }) {
     if (riskRef.current) {
       charts.current.risk = new Chart(riskRef.current, {
         type: 'doughnut',
-        data: { labels: ['Low','Medium','High','Critical'],
-          datasets: [{ data: [rt.low||0,rt.medium||0,rt.high||0,rt.critical||0],
-            backgroundColor:['#052e16','#1c1003','#1c0a0a','#2a0a0a'],
-            borderColor:['#4ade80','#fbbf24','#f87171','#f43f5e'], borderWidth:2 }]
+        data: { labels: ['Low','Medium','High'],
+          datasets: [{ data: [rt.low||0,rt.medium||0,rt.high||0],
+            backgroundColor:['#052e16','#1c1003','#1c0a0a'],
+            borderColor:['#4ade80','#fbbf24','#f87171'], borderWidth:2 }]
         },
         options: { responsive:true, maintainAspectRatio:false, cutout:'65%',
           plugins:{ legend:{ position:'bottom', labels:{ color:'#555', font:{size:11}, boxWidth:10, padding:12 } } }
@@ -34,10 +34,10 @@ export default function Dashboard({ navigate, toast }) {
     if (statusRef.current) {
       charts.current.status = new Chart(statusRef.current, {
         type: 'bar',
-        data: { labels:['Compliant','Needs Review','Non-Compliant','Pending'],
-          datasets: [{ data:[v.compliant||0,v.needs_review||0,v.non_compliant||0,v.pending||0],
-            backgroundColor:['#052e16','#1c1003','#1c0a0a','#111'],
-            borderColor:['#4ade80','#fbbf24','#f87171','#333'], borderWidth:1.5, borderRadius:6 }]
+        data: { labels:['Compliant','Needs Review','Non-Compliant'],
+          datasets: [{ data:[v.compliant||0,v.needs_review||0,v.non_compliant||0],
+            backgroundColor:['#052e16','#1c1003','#1c0a0a'],
+            borderColor:['#4ade80','#fbbf24','#f87171'], borderWidth:1.5, borderRadius:6 }]
         },
         options: { responsive:true, maintainAspectRatio:false,
           plugins:{legend:{display:false}},
@@ -127,9 +127,9 @@ export default function Dashboard({ navigate, toast }) {
           <div style={{ fontSize:14, fontWeight:600, marginBottom:16 }}>Quick Actions</div>
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             <button className="btn btn-ghost" style={{ justifyContent:'flex-start' }}
-              onClick={() => { navigate('upload') }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-              Upload & Analyze Document
+              onClick={() => { navigate('vendors') }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add New Vendor
             </button>
             <button className="btn btn-ghost" style={{ justifyContent:'flex-start' }} onClick={() => navigate('alerts')}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>

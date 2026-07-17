@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/venv
+**/__pycache__
+**/.pytest_cache
+**/vendorclear.db
+**/.env
+**/logs
+**/uploads
+.git
+.vscode
+*.log

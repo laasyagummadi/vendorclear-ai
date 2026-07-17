@@ -76,16 +76,6 @@ class DocumentRepository:
         )
         return list(result.scalars().all())
 
-    @staticmethod
-    async def get_recent_analyses(db: AsyncSession, limit: int = 5) -> List[Analysis]:
-        result = await db.execute(
-            select(Analysis)
-            .order_by(Analysis.created_at.desc())
-            .limit(limit)
-            .options(selectinload(Analysis.findings), selectinload(Analysis.document))
-        )
-        return list(result.scalars().all())
-
     # ── Finding ───────────────────────────────────────────────
 
     @staticmethod

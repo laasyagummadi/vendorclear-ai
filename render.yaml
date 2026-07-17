@@ -1,0 +1,25 @@
+# ================================================================
+#  Render.com blueprint - deploys VendorClear AI as one Docker
+#  web service. Push this repo to GitHub, then in Render choose
+#  "New > Blueprint" and point it at the repo.
+# ================================================================
+services:
+  - type: web
+    name: vendorclear-ai
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true          # Render generates a strong random secret
+      - key: USE_SQLITE
+        value: "true"                # simplest start; see note below
+      # For PERSISTENT data, attach a database and set DATABASE_URL:
+      #   1. Create a Postgres instance (Render, Neon, or Supabase)
+      #   2. Add its connection string here (or in the dashboard):
+      # - key: DATABASE_URL
+      #   sync: false                # set the value in the Render dashboard

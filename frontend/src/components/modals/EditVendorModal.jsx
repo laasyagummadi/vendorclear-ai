@@ -1,18 +1,36 @@
 import { useState } from 'react'
 import { api } from '../../api.js'
 
+// NOTE on fixes made here:
+// - Was called with `id` + `onSaved` props from VendorDetail but destructured
+//   {vendor, onClose, onUpdated} — `vendor` was always undefined, so
+//   `vendor.name` crashed the moment this modal opened. Caller now passes
+//   the actual vendor object (see VendorDetail.jsx).
+// - Used HTTP PUT, but the backend route is a PATCH (`@router.patch`) —
+//   a PUT request would 405. Switched to PATCH via api.js.
+// - Status/Risk Tier dropdowns offered values ("active"/"low"/"critical"...)
+//   that don't match the backend's actual enums (VendorStatus:
+//   COMPLIANT/NEEDS_REVIEW/NON_COMPLIANT, RiskTier: LOW/MEDIUM/HIGH) —
+//   sending them would fail 422 validation. Fixed to the real enum values.
+// - Industry/Website inputs collected data with no backing schema field
+//   (VendorUpdate has no industry/website column) — always silently
+//   discarded. Removed and replaced with City/State/Zip, which the schema
+//   actually supports and VendorDetail already displays.
 export default function EditVendorModal({ vendor, onClose, onUpdated }) {
   const [form, setForm] = useState({
-    name: vendor.name || '',
-    contact_name: vendor.contact_name || '',
-    email: vendor.email || '',
-    phone: vendor.phone || '',
-    address: vendor.address || '',
-    risk_tier: vendor.risk_tier || 'medium',
-    industry: vendor.industry || '',
-    website: vendor.website || '',
-    status: vendor.status || 'active',
-    notes: vendor.notes || ''
+    name: vendor?.name || '',
+    contact_name: vendor?.contact_name || '',
+    email: vendor?.email || '',
+    phone: vendor?.phone || '',
+    address: vendor?.address || '',
+    city: vendor?.city || '',
+    state: vendor?.state || '',
+    zip_code: vendor?.zip_code || '',
+    status: vendor?.status || 'NEEDS_REVIEW',
+    risk_tier: vendor?.risk_tier || 'MEDIUM',
+    gl_expiry: vendor?.gl_expiry || '',
+    wc_expiry: vendor?.wc_expiry || '',
+    notes: vendor?.notes || '',
   })
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
@@ -24,14 +42,19 @@ export default function EditVendorModal({ vendor, onClose, onUpdated }) {
     if (!form.name.trim()) { setErr('Vendor name is required'); return }
     setLoading(true); setErr('')
     try {
-      const updated = await api('PUT', `/vendors/${vendor.id}`, form)
+      const payload = { ...form }
+      if (!payload.gl_expiry) delete payload.gl_expiry
+      if (!payload.wc_expiry) delete payload.wc_expiry
+      const updated = await api('PATCH', `/vendors/${vendor.id}`, payload)
       onUpdated(updated)
     } catch (ex) {
-      setErr(ex.message || 'Failed to update vendor')
+      setErr(ex?.data?.error || (ex?.data?.details && ex.data.details[0]?.message) || 'Failed to update vendor')
     } finally {
       setLoading(false)
     }
   }
+
+  if (!vendor) return null
 
   return (
     <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
@@ -63,28 +86,34 @@ export default function EditVendorModal({ vendor, onClose, onUpdated }) {
               <div className="form-group">
                 <label className="form-label">Status</label>
                 <select className="form-input" value={form.status} onChange={e=>set('status',e.target.value)}>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="pending">Pending</option>
-                  <option value="suspended">Suspended</option>
+                  <option value="COMPLIANT">Compliant</option>
+                  <option value="NEEDS_REVIEW">Needs Review</option>
+                  <option value="NON_COMPLIANT">Non-Compliant</option>
                 </select>
               </div>
               <div className="form-group">
                 <label className="form-label">Risk Tier</label>
                 <select className="form-input" value={form.risk_tier} onChange={e=>set('risk_tier',e.target.value)}>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HIGH">High</option>
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Industry</label>
-                <input className="form-input" value={form.industry} onChange={e=>set('industry',e.target.value)} />
+                <label className="form-label">City</label>
+                <input className="form-input" value={form.city} onChange={e=>set('city',e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Website</label>
-                <input className="form-input" value={form.website} onChange={e=>set('website',e.target.value)} />
+                <label className="form-label">State</label>
+                <input className="form-input" value={form.state} onChange={e=>set('state',e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">GL Expiry (YYYY-MM-DD)</label>
+                <input className="form-input" placeholder="2026-12-31" value={form.gl_expiry} onChange={e=>set('gl_expiry',e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">WC Expiry (YYYY-MM-DD)</label>
+                <input className="form-input" placeholder="2026-12-31" value={form.wc_expiry} onChange={e=>set('wc_expiry',e.target.value)} />
               </div>
               <div className="form-group" style={{ gridColumn:'1/-1' }}>
                 <label className="form-label">Address</label>

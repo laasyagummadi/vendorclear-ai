@@ -50,11 +50,7 @@ class DocumentController:
         # 4. OCR — extract raw text
         raw_text = ""
         try:
-            import asyncio
-            logger.info(f"Starting OCR text extraction for {file.filename}...")
-            # Run the heavy CPU-bound OCR in a background thread to prevent blocking the async event loop
-            raw_text = await asyncio.to_thread(ocr_service.extract_text, file_path)
-            logger.info(f"OCR Complete: Extracted {len(raw_text)} characters.")
+            raw_text = ocr_service.extract_text(file_path)
         except Exception as e:
             logger.error(f"OCR failed for {file_path}: {e}")
 
@@ -74,19 +70,16 @@ class DocumentController:
 
         document.document_type = resolved_type
         self.db.add(document)
-        logger.info(f"Document type resolved as: {resolved_type.value}")
 
         # 6. Gemini structured extraction
         extracted: dict = {}
         confidence = 0.0
         try:
-            logger.info(f"Calling Gemini AI model to extract structured fields...")
             if resolved_type == DocumentType.COI:
                 extracted = await gemini_service.extract_coi(raw_text)
             elif resolved_type == DocumentType.DIVERSITY_CERT:
                 extracted = await gemini_service.extract_diversity(raw_text)
             confidence = extracted.get("confidence_score", 0.0)
-            logger.info(f"Gemini AI extraction complete (Confidence: {confidence:.2f})")
         except Exception as e:
             logger.error(f"Gemini extraction failed: {e}")
 

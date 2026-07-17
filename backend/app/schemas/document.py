@@ -7,7 +7,6 @@ class DocumentOut(BaseModel):
     id: str
     vendor_id: str
     filename: str
-    file_path: str
     file_size_bytes: int
     mime_type: str
     document_type: DocumentType

@@ -16,7 +16,7 @@ export default function VendorDetail({ id, navigate, toast }) {
       api('GET', `/vendors/${id}`),
       api('GET', `/vendors/${id}/documents`),
       api('GET', `/dashboard/vendors/${id}/score`),
-    ]).then(([v, d, s]) => { setVendor(v); setDocs(d || []); setScore(s) }).catch((e) => { toast('Error loading vendor: ' + JSON.stringify(e), 'error') })
+    ]).then(([v, d, s]) => { setVendor(v); setDocs(d || []); setScore(s) }).catch(() => {})
   }
 
   useEffect(() => { load() }, [id])
@@ -129,7 +129,7 @@ export default function VendorDetail({ id, navigate, toast }) {
         )}
       </div>
 
-      {showEdit && <EditVendorModal id={id} onClose={() => setShowEdit(false)} onSaved={() => { setShowEdit(false); toast('Vendor updated!','success'); load() }} />}
+      {showEdit && <EditVendorModal vendor={vendor} onClose={() => setShowEdit(false)} onUpdated={() => { setShowEdit(false); toast('Vendor updated!','success'); load() }} />}
       {showUpload && <UploadModal vendorId={id} vendorName={vendor.name} onClose={() => setShowUpload(false)} onUploaded={() => { setShowUpload(false); toast('Document uploaded and analyzed!','success'); load() }} />}
     </div>
   )
