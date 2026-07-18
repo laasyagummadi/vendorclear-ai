@@ -67,6 +67,15 @@ class DocumentController:
                 resolved_type = DocumentType.COI
             elif any(k in tl for k in ["diversity", "minority", "mbe", "wbe", "dbe", "ownership"]):
                 resolved_type = DocumentType.DIVERSITY_CERT
+            
+            # Multimodal fallback for type detection if local OCR returned empty text
+            if resolved_type == DocumentType.UNKNOWN and not raw_text.strip():
+                logger.info(f"Empty OCR text, trying Gemini multimodal type detection for {file_path}")
+                detected = await gemini_service.detect_document_type(file_path)
+                if detected == "COI":
+                    resolved_type = DocumentType.COI
+                elif detected == "DIVERSITY_CERT":
+                    resolved_type = DocumentType.DIVERSITY_CERT
 
         document.document_type = resolved_type
         self.db.add(document)
@@ -76,9 +85,9 @@ class DocumentController:
         confidence = 0.0
         try:
             if resolved_type == DocumentType.COI:
-                extracted = await gemini_service.extract_coi(raw_text)
+                extracted = await gemini_service.extract_coi(raw_text, file_path)
             elif resolved_type == DocumentType.DIVERSITY_CERT:
-                extracted = await gemini_service.extract_diversity(raw_text)
+                extracted = await gemini_service.extract_diversity(raw_text, file_path)
             confidence = extracted.get("confidence_score", 0.0)
         except Exception as e:
             logger.error(f"Gemini extraction failed: {e}")

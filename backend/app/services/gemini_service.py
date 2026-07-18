@@ -15,15 +15,16 @@ except ImportError:
 from config import settings
 
 # Initialise Gemini once on import (skipped when key is absent)
+# Initialise Gemini once on import (skipped when key is absent)
 _model = None
 if _GEMINI_AVAILABLE and settings.gemini_api_key:
     try:
         genai.configure(api_key=settings.gemini_api_key)
         _model = genai.GenerativeModel(
-            "gemini-1.5-flash",
+            "gemini-3.5-flash",
             generation_config={"response_mime_type": "application/json"},
         )
-        logger.info("Gemini 1.5 Flash model initialized")
+        logger.info("Gemini 3.5 Flash model initialized")
     except Exception as e:
         logger.warning(f"Gemini init failed, using mock: {e}")
 
@@ -31,7 +32,7 @@ if _GEMINI_AVAILABLE and settings.gemini_api_key:
 # ── COI extraction ────────────────────────────────────────────
 
 COI_PROMPT = """
-Extract the following fields from this Certificate of Insurance (COI) text and return ONLY a JSON object:
+Extract the following fields from this Certificate of Insurance (COI) document and return ONLY a JSON object:
 {
   "insured_name": string or null,
   "insurer_name": string or null,
@@ -51,7 +52,7 @@ COI Text:
 """
 
 DIVERSITY_PROMPT = """
-Extract the following fields from this Diversity/Minority Business Certificate text and return ONLY a JSON object:
+Extract the following fields from this Diversity/Minority Business Certificate document and return ONLY a JSON object:
 {
   "cert_body": string or null,
   "cert_type": string or null (e.g. "MBE", "WBE", "DBE", "SBE"),
@@ -65,29 +66,121 @@ Certificate Text:
 """
 
 
-async def extract_coi(raw_text: str) -> dict:
+def _parse_gemini_json(text: str) -> dict:
+    text = text.strip()
+    if text.startswith("```"):
+        first_newline = text.find("\n")
+        if first_newline != -1:
+            text = text[first_newline:].strip()
+        if text.endswith("```"):
+            text = text[:-3].strip()
+    return json.loads(text)
+
+
+async def detect_document_type(file_path: str) -> str:
+    """Detect document type (COI or DIVERSITY_CERT) using Gemini multimodal input."""
+    import os
+    if not _model or not file_path or not os.path.exists(file_path):
+        return "UNKNOWN"
+    try:
+        ext = os.path.splitext(file_path)[1].lower()
+        mime_type = "application/pdf" if ext == ".pdf" else "image/png"
+        with open(file_path, "rb") as f:
+            file_bytes = f.read()
+        
+        prompt = """
+        Analyze this document and determine its type.
+        Return ONLY a JSON object:
+        {
+          "document_type": "COI"
+        }
+        or
+        {
+          "document_type": "DIVERSITY_CERT"
+        }
+        or
+        {
+          "document_type": "UNKNOWN"
+        }
+        Use exactly one of those values ("COI", "DIVERSITY_CERT", or "UNKNOWN") for the "document_type" key.
+        """
+        response = await _model.generate_content_async([
+            prompt,
+            {
+                "mime_type": mime_type,
+                "data": file_bytes
+            }
+        ])
+        data = _parse_gemini_json(response.text)
+        return data.get("document_type", "UNKNOWN")
+    except Exception as e:
+        logger.warning(f"Gemini type detection failed: {e}")
+        return "UNKNOWN"
+
+
+async def extract_coi(raw_text: str, file_path: str = None) -> dict:
     """Extract COI fields using Gemini; fall back to mock on failure."""
-    if _model and raw_text.strip():
-        try:
-            response = await _model.generate_content_async(COI_PROMPT + raw_text)
-            data = json.loads(response.text)
-            data.setdefault("confidence_score", 0.90)
-            return data
-        except Exception as e:
-            logger.warning(f"Gemini COI extraction failed: {e} — using mock")
+    import os
+    if _model:
+        if raw_text.strip():
+            try:
+                response = await _model.generate_content_async(COI_PROMPT + raw_text)
+                data = _parse_gemini_json(response.text)
+                data.setdefault("confidence_score", 0.90)
+                return data
+            except Exception as e:
+                logger.warning(f"Gemini COI extraction failed: {e} — using mock")
+        elif file_path and os.path.exists(file_path):
+            try:
+                ext = os.path.splitext(file_path)[1].lower()
+                mime_type = "application/pdf" if ext == ".pdf" else "image/png"
+                with open(file_path, "rb") as f:
+                    file_bytes = f.read()
+                response = await _model.generate_content_async([
+                    COI_PROMPT,
+                    {
+                        "mime_type": mime_type,
+                        "data": file_bytes
+                    }
+                ])
+                data = _parse_gemini_json(response.text)
+                data.setdefault("confidence_score", 0.90)
+                return data
+            except Exception as e:
+                logger.warning(f"Gemini COI multimodal extraction failed: {e} — using mock")
     return mock_extract_coi(raw_text)
 
 
-async def extract_diversity(raw_text: str) -> dict:
+async def extract_diversity(raw_text: str, file_path: str = None) -> dict:
     """Extract diversity cert fields using Gemini; fall back to mock on failure."""
-    if _model and raw_text.strip():
-        try:
-            response = await _model.generate_content_async(DIVERSITY_PROMPT + raw_text)
-            data = json.loads(response.text)
-            data.setdefault("confidence_score", 0.90)
-            return data
-        except Exception as e:
-            logger.warning(f"Gemini diversity extraction failed: {e} — using mock")
+    import os
+    if _model:
+        if raw_text.strip():
+            try:
+                response = await _model.generate_content_async(DIVERSITY_PROMPT + raw_text)
+                data = _parse_gemini_json(response.text)
+                data.setdefault("confidence_score", 0.90)
+                return data
+            except Exception as e:
+                logger.warning(f"Gemini diversity extraction failed: {e} — using mock")
+        elif file_path and os.path.exists(file_path):
+            try:
+                ext = os.path.splitext(file_path)[1].lower()
+                mime_type = "application/pdf" if ext == ".pdf" else "image/png"
+                with open(file_path, "rb") as f:
+                    file_bytes = f.read()
+                response = await _model.generate_content_async([
+                    DIVERSITY_PROMPT,
+                    {
+                        "mime_type": mime_type,
+                        "data": file_bytes
+                    }
+                ])
+                data = _parse_gemini_json(response.text)
+                data.setdefault("confidence_score", 0.90)
+                return data
+            except Exception as e:
+                logger.warning(f"Gemini diversity multimodal extraction failed: {e} — using mock")
     return mock_extract_diversity(raw_text)
 
 
