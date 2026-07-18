@@ -15,14 +15,14 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         start = time.perf_counter()
 
         # Log incoming request
-        logger.debug(f"→ {request.method} {request.url.path}")
+        logger.debug(f"--> {request.method} {request.url.path}")
 
         try:
             response = await call_next(request)
         except Exception as exc:
             elapsed = (time.perf_counter() - start) * 1000
             logger.error(
-                f"✗ {request.method} {request.url.path} "
+                f"[ERROR] {request.method} {request.url.path} "
                 f"— ERROR in {elapsed:.1f}ms: {exc}"
             )
             raise
@@ -39,7 +39,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             log = logger.info
 
         log(
-            f"← {request.method} {request.url.path} "
+            f"<-- {request.method} {request.url.path} "
             f"[{status}] {elapsed:.1f}ms"
         )
 
