@@ -9,6 +9,7 @@ import AnalysisDetail from './components/AnalysisDetail.jsx'
 import Alerts from './components/Alerts.jsx'
 import Report from './components/Report.jsx'
 import Toast from './components/Toast.jsx'
+import Upload from './components/Upload.jsx'
 
 export default function App() {
   const [token, setTokenState] = useState(() => getToken())
@@ -97,6 +98,7 @@ export default function App() {
       case 'dashboard':    return <Dashboard {...props} />
       case 'vendors':      return <Vendors {...props} />
       case 'vendor-detail':return <VendorDetail id={pageParam} {...props} />
+      case 'upload':       return <Upload {...props} />
       case 'analysis':     return <AnalysisDetail id={pageParam} {...props} />
       case 'alerts':       return <Alerts {...props} />
       case 'report':       return <Report {...props} />
