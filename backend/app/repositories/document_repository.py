@@ -76,6 +76,19 @@ class DocumentRepository:
         )
         return list(result.scalars().all())
 
+    @staticmethod
+    async def get_recent_analyses(db: AsyncSession, limit: int = 5) -> List[Analysis]:
+        """Most recent analyses across all documents, newest first.
+        Eager-loads findings and the parent document so vendor_id can be
+        populated on the response."""
+        result = await db.execute(
+            select(Analysis)
+            .options(selectinload(Analysis.findings), selectinload(Analysis.document))
+            .order_by(Analysis.created_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
     # ── Finding ───────────────────────────────────────────────
 
     @staticmethod

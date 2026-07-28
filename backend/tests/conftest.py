@@ -8,6 +8,20 @@ from sqlalchemy.pool import StaticPool
 from main import app
 from app.database import get_db
 from app.models.base import Base
+from app.utils.rate_limit import limiter
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Clear rate-limit counters before each test. Without this, the shared
+    10/min login limit is exhausted partway through the suite by the many
+    tests that log in, causing unrelated 429s. The dedicated rate-limit
+    test still fires enough requests within its own body to trip the limit."""
+    try:
+        limiter.reset()
+    except Exception:
+        pass
+    yield
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.routes.auth import get_current_user_id
+from app.routes.auth import get_current_user_id, get_current_user
 from app.controllers.vendor_controller import VendorController
 from app.schemas.vendor import (
     VendorCreate, VendorUpdate, VendorResponse,
@@ -14,6 +14,12 @@ from app.schemas.vendor import (
 )
 from app.schemas.common import PaginatedResponse, SuccessResponse
 from app.models.vendor import VendorStatus, RiskTier
+
+async def _actor(db, user_id):
+    """Load the acting user so audit entries carry who did what."""
+    from app.models.user import User
+    return await db.get(User, user_id) if user_id else None
+
 
 router = APIRouter(prefix="/vendors", tags=["vendors"])
 
@@ -31,7 +37,7 @@ async def create_vendor(
     db: AsyncSession = Depends(get_db),
 ):
     ctrl = VendorController(db)
-    return await ctrl.create_vendor(data, created_by_id=user_id)
+    return await ctrl.create_vendor(data, created_by_id=user_id, actor=await _actor(db, user_id))
 
 
 # ── List (paginated + filtered) ───────────────────────────────
@@ -44,6 +50,8 @@ async def list_vendors(
     status_filter: Optional[VendorStatus] = Query(None, alias="status"),
     risk_tier: Optional[RiskTier] = Query(None),
     search: Optional[str] = Query(None, description="Search by name, email, or contact"),
+    category: Optional[str] = Query(None, description="Filter by procurement category"),
+    business_unit: Optional[str] = Query(None, description="Filter by business unit"),
     is_active: Optional[bool] = Query(True),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -54,6 +62,8 @@ async def list_vendors(
         status=status_filter,
         risk_tier=risk_tier,
         search=search,
+        category=category,
+        business_unit=business_unit,
         is_active=is_active,
         page=page,
         page_size=page_size,
@@ -90,7 +100,7 @@ async def update_vendor(
     db: AsyncSession = Depends(get_db),
 ):
     ctrl = VendorController(db)
-    return await ctrl.update_vendor(vendor_id, data)
+    return await ctrl.update_vendor(vendor_id, data, actor=await _actor(db, user_id))
 
 
 # ── Delete ────────────────────────────────────────────────────

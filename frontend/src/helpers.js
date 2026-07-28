@@ -17,7 +17,7 @@ export function fmtSize(bytes) {
 
 export function fmtMoney(v) {
   if (v == null) return '—'
-  return '$' + Number(v).toLocaleString('en-US')
+  return '$' + Number(v).toLocaleString()
 }
 
 export function isExpiring(dateStr, days = 30) {

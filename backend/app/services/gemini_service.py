@@ -15,16 +15,15 @@ except ImportError:
 from config import settings
 
 # Initialise Gemini once on import (skipped when key is absent)
-# Initialise Gemini once on import (skipped when key is absent)
 _model = None
 if _GEMINI_AVAILABLE and settings.gemini_api_key:
     try:
         genai.configure(api_key=settings.gemini_api_key)
         _model = genai.GenerativeModel(
-            "gemini-3.5-flash",
+            "gemini-1.5-flash",
             generation_config={"response_mime_type": "application/json"},
         )
-        logger.info("Gemini 3.5 Flash model initialized")
+        logger.info("Gemini 1.5 Flash model initialized")
     except Exception as e:
         logger.warning(f"Gemini init failed, using mock: {e}")
 
@@ -32,7 +31,9 @@ if _GEMINI_AVAILABLE and settings.gemini_api_key:
 # ── COI extraction ────────────────────────────────────────────
 
 COI_PROMPT = """
-Extract the following fields from this Certificate of Insurance (COI) document and return ONLY a JSON object:
+Extract the following fields from this Certificate of Insurance (COI) text and return ONLY a JSON object.
+Look carefully through the ENTIRE document — insured name, producer, address blocks, and contact lines
+often contain the vendor's contact details. Extract whatever is present; use null only when truly absent.
 {
   "insured_name": string or null,
   "insurer_name": string or null,
@@ -40,11 +41,19 @@ Extract the following fields from this Certificate of Insurance (COI) document a
   "coverage_type": string or null,
   "general_liability_limit_usd": number or null,
   "workers_comp_limit_usd": number or null,
+  "workers_comp_expiry_date": "YYYY-MM-DD" or null,
   "auto_liability_limit_usd": number or null,
   "effective_date": "YYYY-MM-DD" or null,
   "expiry_date": "YYYY-MM-DD" or null,
   "additional_insured": boolean or null,
   "certificate_holder": string or null,
+  "contact_name": string or null (the named contact / authorized representative for the insured),
+  "email": string or null (any email address for the insured/vendor),
+  "phone": string or null (any phone/fax number for the insured/vendor),
+  "address": string or null (street address of the insured/vendor),
+  "city": string or null,
+  "state": string or null (2-letter code if possible),
+  "zip_code": string or null,
   "confidence_score": number between 0.0 and 1.0
 }
 
@@ -52,13 +61,21 @@ COI Text:
 """
 
 DIVERSITY_PROMPT = """
-Extract the following fields from this Diversity/Minority Business Certificate document and return ONLY a JSON object:
+Extract the following fields from this Diversity/Minority Business Certificate text and return ONLY a JSON object.
+Look through the whole document for the certified business's contact and address details too.
 {
   "cert_body": string or null,
   "cert_type": string or null (e.g. "MBE", "WBE", "DBE", "SBE"),
   "cert_number": string or null,
   "ownership_pct": number or null (percentage 0-100),
   "expiry_date": "YYYY-MM-DD" or null,
+  "contact_name": string or null,
+  "email": string or null,
+  "phone": string or null,
+  "address": string or null,
+  "city": string or null,
+  "state": string or null,
+  "zip_code": string or null,
   "confidence_score": number between 0.0 and 1.0
 }
 
@@ -66,125 +83,83 @@ Certificate Text:
 """
 
 
-def _parse_gemini_json(text: str) -> dict:
-    text = text.strip()
-    if text.startswith("```"):
-        first_newline = text.find("\n")
-        if first_newline != -1:
-            text = text[first_newline:].strip()
-        if text.endswith("```"):
-            text = text[:-3].strip()
-    return json.loads(text)
-
-
-async def detect_document_type(file_path: str) -> str:
-    """Detect document type (COI or DIVERSITY_CERT) using Gemini multimodal input."""
-    import os
-    if not _model or not file_path or not os.path.exists(file_path):
-        return "UNKNOWN"
-    try:
-        ext = os.path.splitext(file_path)[1].lower()
-        mime_type = "application/pdf" if ext == ".pdf" else "image/png"
-        with open(file_path, "rb") as f:
-            file_bytes = f.read()
-        
-        prompt = """
-        Analyze this document and determine its type.
-        Return ONLY a JSON object:
-        {
-          "document_type": "COI"
-        }
-        or
-        {
-          "document_type": "DIVERSITY_CERT"
-        }
-        or
-        {
-          "document_type": "UNKNOWN"
-        }
-        Use exactly one of those values ("COI", "DIVERSITY_CERT", or "UNKNOWN") for the "document_type" key.
-        """
-        response = await _model.generate_content_async([
-            prompt,
-            {
-                "mime_type": mime_type,
-                "data": file_bytes
-            }
-        ])
-        data = _parse_gemini_json(response.text)
-        return data.get("document_type", "UNKNOWN")
-    except Exception as e:
-        logger.warning(f"Gemini type detection failed: {e}")
-        return "UNKNOWN"
-
-
-async def extract_coi(raw_text: str, file_path: str = None) -> dict:
+async def extract_coi(raw_text: str) -> dict:
     """Extract COI fields using Gemini; fall back to mock on failure."""
-    import os
-    if _model:
-        if raw_text.strip():
-            try:
-                response = await _model.generate_content_async(COI_PROMPT + raw_text)
-                data = _parse_gemini_json(response.text)
-                data.setdefault("confidence_score", 0.90)
-                return data
-            except Exception as e:
-                logger.warning(f"Gemini COI extraction failed: {e} — using mock")
-        elif file_path and os.path.exists(file_path):
-            try:
-                ext = os.path.splitext(file_path)[1].lower()
-                mime_type = "application/pdf" if ext == ".pdf" else "image/png"
-                with open(file_path, "rb") as f:
-                    file_bytes = f.read()
-                response = await _model.generate_content_async([
-                    COI_PROMPT,
-                    {
-                        "mime_type": mime_type,
-                        "data": file_bytes
-                    }
-                ])
-                data = _parse_gemini_json(response.text)
-                data.setdefault("confidence_score", 0.90)
-                return data
-            except Exception as e:
-                logger.warning(f"Gemini COI multimodal extraction failed: {e} — using mock")
+    if _model and raw_text.strip():
+        try:
+            response = await _model.generate_content_async(COI_PROMPT + raw_text)
+            data = json.loads(response.text)
+            data.setdefault("confidence_score", 0.90)
+            return data
+        except Exception as e:
+            logger.warning(f"Gemini COI extraction failed: {e} — using mock")
     return mock_extract_coi(raw_text)
 
 
-async def extract_diversity(raw_text: str, file_path: str = None) -> dict:
+async def extract_diversity(raw_text: str) -> dict:
     """Extract diversity cert fields using Gemini; fall back to mock on failure."""
-    import os
-    if _model:
-        if raw_text.strip():
-            try:
-                response = await _model.generate_content_async(DIVERSITY_PROMPT + raw_text)
-                data = _parse_gemini_json(response.text)
-                data.setdefault("confidence_score", 0.90)
-                return data
-            except Exception as e:
-                logger.warning(f"Gemini diversity extraction failed: {e} — using mock")
-        elif file_path and os.path.exists(file_path):
-            try:
-                ext = os.path.splitext(file_path)[1].lower()
-                mime_type = "application/pdf" if ext == ".pdf" else "image/png"
-                with open(file_path, "rb") as f:
-                    file_bytes = f.read()
-                response = await _model.generate_content_async([
-                    DIVERSITY_PROMPT,
-                    {
-                        "mime_type": mime_type,
-                        "data": file_bytes
-                    }
-                ])
-                data = _parse_gemini_json(response.text)
-                data.setdefault("confidence_score", 0.90)
-                return data
-            except Exception as e:
-                logger.warning(f"Gemini diversity multimodal extraction failed: {e} — using mock")
+    if _model and raw_text.strip():
+        try:
+            response = await _model.generate_content_async(DIVERSITY_PROMPT + raw_text)
+            data = json.loads(response.text)
+            data.setdefault("confidence_score", 0.90)
+            return data
+        except Exception as e:
+            logger.warning(f"Gemini diversity extraction failed: {e} — using mock")
     return mock_extract_diversity(raw_text)
 
 
 # ── Mock extractors (regex-based fallbacks) ───────────────────
+
+def _extract_contact_fields(text: str) -> dict:
+    """Best-effort extraction of vendor contact/address details from raw
+    document text. Used by both fallback extractors so the vendor profile
+    auto-fills even when Gemini is not configured."""
+    out = {
+        "contact_name": None, "email": None, "phone": None,
+        "address": None, "city": None, "state": None, "zip_code": None,
+    }
+
+    m = re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", text)
+    if m:
+        out["email"] = m.group(0).strip().rstrip(".")
+
+    # Phone: (123) 456-7890, 123-456-7890, 123.456.7890, +1 123 456 7890
+    m = re.search(r"(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}", text)
+    if m:
+        out["phone"] = m.group(0).strip()
+
+    m = re.search(
+        r"(?:authorized\s+representative|contact|attn|attention|agent)[:\s]+"
+        r"([A-Z][A-Za-z.'-]+(?:[ \t]+[A-Z][A-Za-z.'-]+){1,2})",
+        text, re.IGNORECASE,
+    )
+    if m:
+        # stop at a newline and strip any trailing label word that leaked in
+        name = m.group(1).split("\n")[0].strip()
+        out["contact_name"] = name
+
+    # Address line: "123 Main St, City, ST 12345"
+    m = re.search(
+        r"(\d{1,6}\s+[A-Za-z0-9.\s]+?(?:St|Street|Ave|Avenue|Blvd|Boulevard|Rd|Road|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Plaza)\.?)"
+        r"\s*,?\s*([A-Za-z .'-]+?)\s*,\s*([A-Z]{2})\s+(\d{5})",
+        text,
+    )
+    if m:
+        out["address"] = m.group(1).strip()
+        out["city"] = m.group(2).strip()
+        out["state"] = m.group(3).strip()
+        out["zip_code"] = m.group(4).strip()
+    else:
+        # Looser: "City, ST 12345" anywhere
+        m2 = re.search(r"([A-Za-z][A-Za-z .'-]+?)\s*,\s*([A-Z]{2})\s+(\d{5})", text)
+        if m2:
+            out["city"] = m2.group(1).strip()
+            out["state"] = m2.group(2).strip()
+            out["zip_code"] = m2.group(3).strip()
+
+    return out
+
 
 def mock_extract_coi(text: str) -> dict:
     text_lower = text.lower()
@@ -193,7 +168,7 @@ def mock_extract_coi(text: str) -> dict:
     insured = None
     m = re.search(r"insured[:\s]+([A-Za-z0-9 ,\.]+)", text, re.IGNORECASE)
     if m:
-        insured = m.group(1).strip()
+        insured = m.group(1).split("\n")[0].strip()
 
     # Policy number
     policy = None
@@ -218,13 +193,23 @@ def mock_extract_coi(text: str) -> dict:
     if m:
         expiry = _normalise_date(m.group(1))
 
-    return {
+    # Workers Comp expiry (may appear as its own line)
+    wc_expiry = None
+    m = re.search(
+        r"workers?\s*comp(?:ensation)?.{0,60}?expir(?:ation|y|es)?[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})",
+        text, re.IGNORECASE | re.DOTALL,
+    )
+    if m:
+        wc_expiry = _normalise_date(m.group(1))
+
+    result = {
         "insured_name": insured,
         "insurer_name": None,
         "policy_number": policy,
         "coverage_type": "Commercial General Liability" if "general liability" in text_lower else None,
         "general_liability_limit_usd": gl_limit,
         "workers_comp_limit_usd": None,
+        "workers_comp_expiry_date": wc_expiry,
         "auto_liability_limit_usd": None,
         "effective_date": None,
         "expiry_date": expiry,
@@ -232,6 +217,8 @@ def mock_extract_coi(text: str) -> dict:
         "certificate_holder": None,
         "confidence_score": 0.85,
     }
+    result.update(_extract_contact_fields(text))
+    return result
 
 
 def mock_extract_diversity(text: str) -> dict:
@@ -276,7 +263,7 @@ def mock_extract_diversity(text: str) -> dict:
             cert_body = body.upper()
             break
 
-    return {
+    result = {
         "cert_body": cert_body,
         "cert_type": cert_type,
         "cert_number": cert_number,
@@ -284,6 +271,8 @@ def mock_extract_diversity(text: str) -> dict:
         "expiry_date": expiry,
         "confidence_score": 0.85,
     }
+    result.update(_extract_contact_fields(text))
+    return result
 
 
 def _normalise_date(raw: str) -> str | None:

@@ -44,7 +44,7 @@ export default function VendorDetail({ id, navigate, toast }) {
       <div className="breadcrumb">
         <a onClick={() => navigate('vendors')}>Vendors</a>
         <span className="breadcrumb-sep">›</span>
-        <span style={{ color:'#888' }}>{vendor.name}</span>
+        <span style={{ color:'#605e5c' }}>{vendor.name}</span>
       </div>
 
       <div className="page-header">
@@ -89,13 +89,13 @@ export default function VendorDetail({ id, navigate, toast }) {
         <div className="card" style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center' }}>
           <div style={{ fontSize:12, color:'#444', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:14 }}>Compliance Score</div>
           <div style={{ fontSize:64, fontWeight:800, letterSpacing:-3, color:gradeColor, lineHeight:1 }}>{grade}</div>
-          {totalScore !== null && <div style={{ fontSize:14, color:'#555', marginTop:6 }}>{totalScore}/100</div>}
+          {totalScore !== null && <div style={{ fontSize:14, color:'#605e5c', marginTop:6 }}>{totalScore}/100</div>}
           {score?.breakdown && (
             <div style={{ marginTop:16, width:'100%' }}>
               {Object.entries(score.breakdown).map(([k,v]) => (
                 <div key={k} style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginBottom:6 }}>
                   <span style={{ color:'#444' }}>{k.replace(/_/g,' ')}</span>
-                  <span style={{ color:'#666' }}>{v}</span>
+                  <span style={{ color:'#605e5c' }}>{v}</span>
                 </div>
               ))}
             </div>
@@ -119,8 +119,8 @@ export default function VendorDetail({ id, navigate, toast }) {
                   <td><div style={{ fontWeight:500 }}>{d.filename}</div></td>
                   <td><span className={`badge ${docTypeBadgeClass(d.document_type)}`}>{d.document_type || '—'}</span></td>
                   <td><span className={`badge ${docStatusBadgeClass(d.status)}`}>{d.status || '—'}</span></td>
-                  <td style={{ color:'#555', fontSize:12 }}>{fmtSize(d.file_size_bytes)}</td>
-                  <td style={{ color:'#555', fontSize:12 }}>{fmtDate(d.created_at)}</td>
+                  <td style={{ color:'#605e5c', fontSize:12 }}>{fmtSize(d.file_size_bytes)}</td>
+                  <td style={{ color:'#605e5c', fontSize:12 }}>{fmtDate(d.created_at)}</td>
                   <td style={{ textAlign:'right' }}><span style={{ color:'#333', fontSize:18, padding:'0 8px' }}>›</span></td>
                 </tr>
               ))}

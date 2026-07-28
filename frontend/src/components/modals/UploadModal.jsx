@@ -84,14 +84,14 @@ export default function UploadModal({ vendorId, vendorName, onClose, onUploaded 
                 <div>
                   <div className="upload-icon">📄</div>
                   <div style={{ fontWeight:600 }}>{file.name}</div>
-                  <div style={{ color:'#555', fontSize:12, marginTop:4 }}>{fmtSize(file.size)}</div>
-                  <div style={{ color:'#666', fontSize:11, marginTop:6 }}>Click to change</div>
+                  <div style={{ color:'#605e5c', fontSize:12, marginTop:4 }}>{fmtSize(file.size)}</div>
+                  <div style={{ color:'#605e5c', fontSize:11, marginTop:6 }}>Click to change</div>
                 </div>
               ) : (
                 <div>
                   <div className="upload-icon">⬆</div>
                   <div>Drop a file here or <span style={{ color:'#aaa', textDecoration:'underline', cursor:'pointer' }}>browse</span></div>
-                  <div style={{ color:'#555', fontSize:12, marginTop:6 }}>PDF, PNG, JPG, TIFF, DOCX — max 20 MB</div>
+                  <div style={{ color:'#605e5c', fontSize:12, marginTop:6 }}>PDF, PNG, JPG, TIFF, DOCX — max 20 MB</div>
                 </div>
               )}
               <input ref={inputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif,.docx" style={{ display:'none' }}

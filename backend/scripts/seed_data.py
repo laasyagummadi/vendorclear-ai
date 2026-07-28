@@ -100,7 +100,14 @@ async def seed():
         await conn.run_sync(Base.metadata.create_all)
 
     async with AsyncSessionLocal() as db:
-        # Demo user
+        from app.models.user import UserRole
+        from app.services.config_service import ConfigService
+
+        # Seed version 1 & 2 configurations first
+        await ConfigService(db).ensure_seeded()
+        print("Seeded version 1 & 2 configurations.")
+
+        # Demo ADMIN user
         from sqlalchemy import select
         existing = await db.execute(select(User).where(User.email == "demo@vendorclear.ai"))
         demo_user = existing.scalar_one_or_none()
@@ -110,20 +117,64 @@ async def seed():
                 full_name="Demo Admin",
                 hashed_password=hash_password("DemoPass123"),
                 is_admin=True,
+                role=UserRole.ADMIN,
             )
             db.add(demo_user)
             await db.flush()
-            print(f"Created demo user: demo@vendorclear.ai / DemoPass123")
+            print("Created demo ADMIN: demo@vendorclear.ai / DemoPass123")
         else:
-            print("Demo user already exists, skipping.")
+            demo_user.role = UserRole.ADMIN
+            demo_user.is_admin = True
+            print("Demo admin already exists, ensured ADMIN role.")
 
         created = 0
-        for v in VENDORS:
+        svc = ConfigService(db)
+        v1_cfg = await svc.get_config(1)
+        v2_cfg = await svc.get_config(2)
+        for i, v in enumerate(VENDORS):
             existing_v = await db.execute(select(Vendor).where(Vendor.name == v["name"]))
             if existing_v.scalar_one_or_none():
                 continue
-            db.add(Vendor(**v, created_by_id=demo_user.id))
+            # Alternate demo vendors across versions so both are represented,
+            # snapshotting the matching config onto each (Option A).
+            version = 1 if i % 2 == 0 else 2
+            cfg = v1_cfg if version == 1 else v2_cfg
+            db.add(Vendor(
+                **v, created_by_id=demo_user.id,
+                assigned_version=version, effective_config=dict(cfg),
+            ))
             created += 1
+
+        await db.flush()
+
+        # Demo VENDOR user linked to the first vendor, to demonstrate the
+        # read-only vendor role.
+        vend_existing = await db.execute(select(User).where(User.email == "vendor@vendorclear.ai"))
+        if not vend_existing.scalar_one_or_none():
+            first_vendor = (await db.execute(select(Vendor).limit(1))).scalar_one_or_none()
+            db.add(User(
+                email="vendor@vendorclear.ai",
+                full_name="Demo Vendor",
+                hashed_password=hash_password("VendorPass123"),
+                is_admin=False,
+                role=UserRole.VENDOR,
+                vendor_id=first_vendor.id if first_vendor else None,
+            ))
+            print("Created demo VENDOR: vendor@vendorclear.ai / VendorPass123")
+
+        # Demo users for the remaining roles (Module 4/5 demonstration)
+        for email, name, role_val in [
+            ("analyst@vendorclear.ai", "Demo Analyst", UserRole.ANALYST),
+            ("auditor@vendorclear.ai", "Demo Auditor", UserRole.AUDITOR),
+        ]:
+            exists = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+            if not exists:
+                db.add(User(
+                    email=email, full_name=name,
+                    hashed_password=hash_password("DemoPass123"),
+                    is_admin=False, role=role_val,
+                ))
+                print(f"Created demo {role_val.value}: {email} / DemoPass123")
 
         await db.commit()
         print(f"Seeded {created} vendors ({len(VENDORS) - created} already existed).")

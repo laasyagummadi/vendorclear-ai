@@ -53,7 +53,7 @@ export default function Vendors({ navigate, toast }) {
         ) : filtered.length === 0 ? (
           <div className="empty-state">
             <div className="icon">🏢</div>
-            <p style={{ color:'#555' }}>{filter ? 'No vendors match your search.' : 'No vendors yet.'}</p>
+            <p style={{ color:'#605e5c' }}>{filter ? 'No vendors match your search.' : 'No vendors yet.'}</p>
             {!filter && <button className="btn btn-ghost btn-sm mt-4" onClick={() => setShowCreate(true)}>Add your first vendor</button>}
           </div>
         ) : (
@@ -69,8 +69,8 @@ export default function Vendors({ navigate, toast }) {
                     <div style={{ fontWeight:600, color:'#e0e0e0' }}>{v.name}</div>
                     <div style={{ fontSize:11, color:'#444', marginTop:2 }}>{v.email || ''}</div>
                   </td>
-                  <td style={{ color:'#666' }}>{v.contact_name || '—'}</td>
-                  <td style={{ color:'#666' }}>{[v.city,v.state].filter(Boolean).join(', ') || '—'}</td>
+                  <td style={{ color:'#605e5c' }}>{v.contact_name || '—'}</td>
+                  <td style={{ color:'#605e5c' }}>{[v.city,v.state].filter(Boolean).join(', ') || '—'}</td>
                   <td><span className={`badge ${riskBadgeClass(v.risk_tier)}`}>{v.risk_tier || '—'}</span></td>
                   <td><span className={`badge ${statusBadgeClass(v.status)}`}>{v.status || '—'}</span></td>
                   <td style={{ fontSize:12, color: isExpiring(v.gl_expiry)?'#f87171':'#555' }}>{fmtDate(v.gl_expiry)}</td>

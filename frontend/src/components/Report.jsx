@@ -53,14 +53,14 @@ export default function Report({ navigate }) {
                       <td><span className={`badge ${riskBadgeClass(v.risk_tier)}`}>{v.risk_tier||'—'}</span></td>
                       <td>
                         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                          <div style={{ width:60, height:4, background:'#111', borderRadius:4 }}>
+                          <div style={{ width:60, height:4, background:'#f3f2f1', borderRadius:4 }}>
                             <div style={{ height:4, background:gc, borderRadius:4, width:`${v.total_score||0}%` }} />
                           </div>
                           <span style={{ fontSize:12, color:'#777' }}>{v.total_score??'—'}</span>
                         </div>
                       </td>
                       <td><span style={{ fontSize:18, fontWeight:700, color:gc }}>{v.grade||'?'}</span></td>
-                      <td style={{ color:'#555', fontSize:12 }}>{v.document_count??0} doc{(v.document_count||0)!==1?'s':''}</td>
+                      <td style={{ color:'#605e5c', fontSize:12 }}>{v.document_count??0} doc{(v.document_count||0)!==1?'s':''}</td>
                       <td style={{ fontSize:12, color:isExpiring(v.gl_expiry)?'#f87171':'#555' }}>{fmtDate(v.gl_expiry)||'—'}</td>
                     </tr>
                   )

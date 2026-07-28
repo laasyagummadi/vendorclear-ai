@@ -54,6 +54,24 @@ class Vendor(Base, UUIDMixin, TimestampMixin):
     )
     compliance_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
+    # ── Module 2: categorisation ──────────────────────────────
+    # Free-text but indexed so vendors can be grouped and filtered by
+    # procurement category and internal business unit.
+    category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    business_unit: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+
+    # ── Version assignment & per-vendor config snapshot (Option A) ─
+    # assigned_version links the vendor to Version 1 or Version 2.
+    # effective_config is THIS vendor's own snapshot of the settings that
+    # apply to them. It is copied from the version config when the vendor is
+    # assigned, and only updated later if the admin explicitly chooses to
+    # "apply changes to existing vendors" (requirement 5). This lets two
+    # vendors on the same version legitimately hold different settings.
+    assigned_version: Mapped[int] = mapped_column(
+        Integer, default=1, nullable=False, index=True
+    )
+    effective_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
     # ── Diversity certifications (stored as JSON array of strings) ─
     # e.g. ["MBE", "WBE", "DBE"]
     diversity_types: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
@@ -73,7 +91,8 @@ class Vendor(Base, UUIDMixin, TimestampMixin):
         String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     created_by: Mapped[Optional["User"]] = relationship(  # noqa: F821
-        "User", back_populates="vendors", lazy="selectin"
+        "User", back_populates="vendors", lazy="selectin",
+        foreign_keys=[created_by_id],
     )
 
     # ── Documents ─────────────────────────────────────────────

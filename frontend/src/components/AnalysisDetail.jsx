@@ -43,7 +43,7 @@ export default function AnalysisDetail({ id, navigate }) {
         <span className="breadcrumb-sep">›</span>
         <a onClick={() => navigate('vendor-detail', analysis.vendor_id || '')}>Vendor</a>
         <span className="breadcrumb-sep">›</span>
-        <span style={{ color:'#888' }}>Analysis</span>
+        <span style={{ color:'#605e5c' }}>Analysis</span>
       </div>
 
       <div className="page-header">
@@ -83,7 +83,7 @@ export default function AnalysisDetail({ id, navigate }) {
                 <div className="finding-sev"><span className={`badge ${severityBadgeClass(f.severity)}`}>{f.severity || '—'}</span></div>
                 <div>
                   <div style={{ fontSize:12, fontWeight:600, color:'#bbb' }}>{f.rule_code || ''}</div>
-                  <div style={{ fontSize:12, color:'#555', marginTop:2 }}>{f.message || ''}</div>
+                  <div style={{ fontSize:12, color:'#605e5c', marginTop:2 }}>{f.message || ''}</div>
                 </div>
               </div>
             ))

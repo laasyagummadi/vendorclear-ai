@@ -23,6 +23,7 @@ from app.models.user import User
 
 class AuthController:
     def __init__(self, db: AsyncSession):
+        self.db = db
         self.repo = UserRepository(db)
 
     # ── Register ──────────────────────────────────────────────
@@ -50,6 +51,15 @@ class AuthController:
         access_token = create_access_token(user.id, user.email)
         refresh_token = create_refresh_token(user.id, user.email)
         logger.info(f"User logged in: {user.email}")
+
+        # M7 audit trail: record every successful sign-in
+        from app.services.audit_service import AuditService
+        from app.models.audit import AuditAction
+        await AuditService(self.db).log(
+            AuditAction.LOGIN, "user", entity_id=user.id,
+            entity_name=user.email, actor=user,
+            summary=f"Signed in: {user.email}",
+        )
 
         return TokenResponse(
             access_token=access_token,

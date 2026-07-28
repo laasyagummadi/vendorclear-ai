@@ -36,6 +36,10 @@ class VendorRepository:
             query = query.where(Vendor.status == filters.status)
         if filters.risk_tier:
             query = query.where(Vendor.risk_tier == filters.risk_tier)
+        if getattr(filters, "category", None):
+            query = query.where(Vendor.category == filters.category)
+        if getattr(filters, "business_unit", None):
+            query = query.where(Vendor.business_unit == filters.business_unit)
         if filters.search:
             term = f"%{filters.search}%"
             query = query.where(

@@ -19,9 +19,9 @@ export default function Upload({ navigate, toast }) {
   const dragRef = useRef(null)
 
   useEffect(() => {
-    api('GET', '/vendors?page_size=100')
+    api('GET', '/vendors?page=1&page_size=100')
       .then(res => {
-        const list = res?.items || res?.data || (Array.isArray(res) ? res : [])
+        const list = res?.data || res?.items || (Array.isArray(res) ? res : [])
         setVendors(list)
       })
       .catch(() => setVendors([]))
@@ -168,7 +168,7 @@ export default function Upload({ navigate, toast }) {
           {/* Step 1 Form */}
           <div className="card" style={{ padding: 20 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ display: 'inline-flex', width: 22, height: 22, borderRadius: '50%', background: '#fff', color: '#000', fontSize: 11, fontWeight: 800, alignItems: 'center', justifyContent: 'center' }}>1</span>
+              <span style={{ display: 'inline-flex', width: 22, height: 22, borderRadius: '50%', background: '#0078d4', color: '#ffffff', fontSize: 11, fontWeight: 800, alignItems: 'center', justifyContent: 'center' }}>1</span>
               <span>Select Vendor & Document Details</span>
             </div>
 
@@ -182,7 +182,7 @@ export default function Upload({ navigate, toast }) {
                     setVendorId(e.target.value)
                     setUploadError('')
                   }}
-                  style={{ width: '100%', background: '#111', cursor: 'pointer' }}
+                  style={{ width: '100%', background: '#f3f2f1', cursor: 'pointer' }}
                 >
                   <option value="">-- Choose vendor --</option>
                   <option value="__new__">➕ Create New Vendor...</option>
@@ -209,7 +209,7 @@ export default function Upload({ navigate, toast }) {
                   className="form-input" 
                   value={docTypeHint} 
                   onChange={e => setDocTypeHint(e.target.value)}
-                  style={{ width: '100%', background: '#111', cursor: 'pointer' }}
+                  style={{ width: '100%', background: '#f3f2f1', cursor: 'pointer' }}
                 >
                   <option value="AUTO">Auto Detect (AI Assisted)</option>
                   <option value="COI">Certificate of Insurance (COI)</option>
@@ -217,7 +217,7 @@ export default function Upload({ navigate, toast }) {
                 </select>
               </div>
             </div>
-            <div style={{ marginTop: 12, fontSize: 11, color: '#444' }}>
+            <div style={{ marginTop: 12, fontSize: 11, color: '#a19f9d' }}>
               💡 If the vendor is not in the directory yet, choose "Create New Vendor..." to add them to the database automatically during upload.
             </div>
           </div>
@@ -248,7 +248,7 @@ export default function Upload({ navigate, toast }) {
             <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 4 }}>
               {file ? file.name : 'Drop document file here or click to browse'}
             </div>
-            <div style={{ fontSize: 12, color: '#444' }}>
+            <div style={{ fontSize: 12, color: '#a19f9d' }}>
               {file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB · Click to change` : 'Accepts PDF, PNG, JPG, JPEG up to 20MB'}
             </div>
             <input 
@@ -305,13 +305,13 @@ export default function Upload({ navigate, toast }) {
 
         {/* Instructions Pane */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#777', textTransform: 'uppercase', letterSpacing: '.06em' }}>Supported Classes</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#605e5c', textTransform: 'uppercase', letterSpacing: '.06em' }}>Supported Classes</div>
           
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ fontSize: 18 }}>🛡️</div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>Insurance Policies (COI)</div>
-              <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>Extracts General Liability, Auto, and Workers Comp limits and checks requirements.</div>
+              <div style={{ fontSize: 11, color: '#605e5c', marginTop: 2 }}>Extracts General Liability, Auto, and Workers Comp limits and checks requirements.</div>
             </div>
           </div>
           
@@ -319,7 +319,7 @@ export default function Upload({ navigate, toast }) {
             <div style={{ fontSize: 18 }}>🏷️</div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>Diversity Certifications</div>
-              <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>Verifies MBE, WBE, DBE, HUBZone classifications, expiration status, and ownership percent.</div>
+              <div style={{ fontSize: 11, color: '#605e5c', marginTop: 2 }}>Verifies MBE, WBE, DBE, HUBZone classifications, expiration status, and ownership percent.</div>
             </div>
           </div>
           
@@ -327,7 +327,7 @@ export default function Upload({ navigate, toast }) {
             <div style={{ fontSize: 18 }}>⚡</div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#e0e0e0' }}>Real-time OCR & AI</div>
-              <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>Image files are parsed via pytesseract OCR, then analyzed in seconds with Gemini 1.5 Flash.</div>
+              <div style={{ fontSize: 11, color: '#605e5c', marginTop: 2 }}>Image files are parsed via pytesseract OCR, then analyzed in seconds with Gemini 1.5 Flash.</div>
             </div>
           </div>
         </div>
@@ -337,7 +337,7 @@ export default function Upload({ navigate, toast }) {
       <div style={{ marginTop: 40 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 16 }}>Previously Analyzed Documents</div>
         {recentAnalyses.length === 0 ? (
-          <div className="card" style={{ padding: '24px', textAlign: 'center', color: '#555' }}>
+          <div className="card" style={{ padding: '24px', textAlign: 'center', color: '#605e5c' }}>
             No recent analyses found.
           </div>
         ) : (
@@ -360,8 +360,8 @@ export default function Upload({ navigate, toast }) {
                         {a.status}
                       </span>
                     </td>
-                    <td style={{ color: '#666' }}>{new Date(a.created_at).toLocaleDateString()}</td>
-                    <td style={{ textAlign: 'right' }}><span style={{ color: '#333', fontSize: 18 }}>›</span></td>
+                    <td style={{ color: '#605e5c' }}>{new Date(a.created_at).toLocaleDateString()}</td>
+                    <td style={{ textAlign: 'right' }}><span style={{ color: '#a19f9d', fontSize: 18 }}>›</span></td>
                   </tr>
                 ))}
               </tbody>

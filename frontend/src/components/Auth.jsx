@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api, setToken } from '../api.js'
+import { api, setToken, setRefreshToken } from '../api.js'
 
 export default function Auth({ onLogin }) {
   const [tab, setTab] = useState('login')
@@ -22,6 +22,7 @@ export default function Auth({ onLogin }) {
       const data = await api('POST', '/auth/login', { email, password: pwd })
       if (!data) { setLoginErr('Login failed'); return }
       setToken(data.access_token)
+      if (data.refresh_token) setRefreshToken(data.refresh_token)
       const user = await api('GET', '/auth/me')
       onLogin(data.access_token, user)
     } catch (e) {
@@ -125,7 +126,7 @@ export default function Auth({ onLogin }) {
         )}
 
         <div style={{ marginTop: 20, textAlign: 'center', fontSize: 11, color: '#2a2a2a' }}>
-          Backend must be running on <span style={{ color: '#444' }}>http://localhost:8000</span>
+          Backend must be running on <span style={{ color: '#a19f9d' }}>http://localhost:8000</span>
         </div>
       </div>
     </div>

@@ -18,6 +18,8 @@ class VendorCreate(BaseModel):
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
+    category: Optional[str] = None
+    business_unit: Optional[str] = None
     diversity_types: Optional[List[str]] = None
     gl_expiry: Optional[str] = None   # YYYY-MM-DD
     wc_expiry: Optional[str] = None
@@ -52,6 +54,8 @@ class VendorUpdate(BaseModel):
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
+    category: Optional[str] = None
+    business_unit: Optional[str] = None
     status: Optional[VendorStatus] = None
     risk_tier: Optional[RiskTier] = None
     compliance_score: Optional[float] = None
@@ -73,6 +77,8 @@ class VendorResponse(BaseModel):
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
+    category: Optional[str] = None
+    business_unit: Optional[str] = None
     status: VendorStatus
     risk_tier: RiskTier
     compliance_score: Optional[float] = None
@@ -84,6 +90,10 @@ class VendorResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     created_by_id: Optional[str] = None
+    category: Optional[str] = None
+    business_unit: Optional[str] = None
+    assigned_version: int = 1
+    effective_config: Optional[dict] = None
 
     model_config = {"from_attributes": True}
 
@@ -93,6 +103,8 @@ class VendorFilterParams(BaseModel):
     status: Optional[VendorStatus] = None
     risk_tier: Optional[RiskTier] = None
     search: Optional[str] = None        # searches name, email, contact_name
+    category: Optional[str] = None
+    business_unit: Optional[str] = None
     is_active: Optional[bool] = True
     page: int = 1
     page_size: int = 20

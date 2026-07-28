@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
 #  app/routes/analysis.py  —  Analysis result endpoints
 # ─────────────────────────────────────────────────────────────
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -15,6 +16,26 @@ router = APIRouter(
 )
 
 
+def _to_out(analysis) -> AnalysisOut:
+    out = AnalysisOut.model_validate(analysis)
+    if analysis.document:
+        out.vendor_id = analysis.document.vendor_id
+    return out
+
+
+@router.get("/recent", response_model=List[AnalysisOut])
+async def get_recent_analyses(
+    limit: int = Query(default=5, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user_id),
+):
+    """Most recent analyses across all documents (for the upload dashboard).
+    NOTE: this route must be declared before /{analysis_id} so that the
+    literal path 'recent' is not captured as an analysis id."""
+    analyses = await DocumentRepository.get_recent_analyses(db, limit=limit)
+    return [_to_out(a) for a in analyses]
+
+
 @router.get("/{analysis_id}", response_model=AnalysisOut)
 async def get_analysis(
     analysis_id: str,
@@ -25,7 +46,4 @@ async def get_analysis(
     analysis = await DocumentRepository.get_analysis(db, analysis_id)
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found.")
-    out = AnalysisOut.model_validate(analysis)
-    if analysis.document:
-        out.vendor_id = analysis.document.vendor_id
-    return out
+    return _to_out(analysis)

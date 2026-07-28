@@ -13,7 +13,7 @@ from config import settings
 from app.database import engine
 from app.models.base import Base
 from app.routes import auth, vendors
-from app.routes import documents, analysis, dashboard, alerts
+from app.routes import documents, analysis, dashboard, alerts, config, policies, audit
 from app.middleware.logging import RequestLoggingMiddleware
 from app.utils.exceptions import register_exception_handlers
 from app.utils.rate_limit import limiter
@@ -50,6 +50,12 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables verified")
+    # Seed the version 1 & 2 configuration rows from defaults if missing.
+    from app.database import AsyncSessionLocal
+    from app.services.config_service import ConfigService
+    async with AsyncSessionLocal() as _db:
+        await ConfigService(_db).ensure_seeded()
+        logger.info("Version configurations seeded")
     yield
     logger.info("Shutting down...")
     await engine.dispose()
@@ -101,6 +107,9 @@ app.include_router(documents.router, prefix=settings.api_v1_prefix)
 app.include_router(analysis.router, prefix=settings.api_v1_prefix)
 app.include_router(dashboard.router, prefix=settings.api_v1_prefix)
 app.include_router(alerts.router, prefix=settings.api_v1_prefix)
+app.include_router(config.router, prefix=settings.api_v1_prefix)
+app.include_router(policies.router, prefix=settings.api_v1_prefix)
+app.include_router(audit.router, prefix=settings.api_v1_prefix)
 
 
 # ── Health ────────────────────────────────────────────────────

@@ -16,14 +16,27 @@ from app.utils.exceptions import NotFoundError
 
 class VendorController:
     def __init__(self, db: AsyncSession):
+        self.db = db
         self.repo = VendorRepository(db)
 
     # ── Create ────────────────────────────────────────────────
     async def create_vendor(
-        self, data: VendorCreate, created_by_id: str
+        self, data: VendorCreate, created_by_id: str, actor=None
     ) -> VendorResponse:
         vendor = await self.repo.create(data, created_by_id=created_by_id)
         logger.info(f"Vendor created: {vendor.name} (id={vendor.id})")
+
+        # M7 audit trail + M8 version history
+        from app.services.audit_service import AuditService, snapshot_of
+        from app.models.audit import AuditAction
+        audit = AuditService(self.db)
+        snap = snapshot_of(vendor)
+        await audit.log(AuditAction.CREATE, "vendor", entity_id=vendor.id,
+                        entity_name=vendor.name, actor=actor,
+                        summary=f"Vendor '{vendor.name}' created", commit=False)
+        await audit.record_version("vendor", vendor.id, snap, previous=None,
+                                   actor=actor, note="Vendor created", commit=False)
+        await self.db.commit()
         return VendorResponse.model_validate(vendor)
 
     # ── Get one ───────────────────────────────────────────────
@@ -50,24 +63,48 @@ class VendorController:
 
     # ── Update ────────────────────────────────────────────────
     async def update_vendor(
-        self, vendor_id: str, data: VendorUpdate
+        self, vendor_id: str, data: VendorUpdate, actor=None
     ) -> VendorResponse:
         vendor = await self.repo.get_by_id(vendor_id)
         if not vendor:
             raise NotFoundError("Vendor")
 
+        from app.services.audit_service import AuditService, snapshot_of, diff
+        from app.models.audit import AuditAction
+        before = snapshot_of(vendor)
+
         vendor = await self.repo.update(vendor, data)
         logger.info(f"Vendor updated: {vendor.name} (id={vendor.id})")
+
+        after = snapshot_of(vendor)
+        changes = diff(before, after)
+        if changes:
+            audit = AuditService(self.db)
+            await audit.log(AuditAction.UPDATE, "vendor", entity_id=vendor.id,
+                            entity_name=vendor.name, actor=actor, changes=changes,
+                            summary=f"Updated {len(changes)} field(s) on '{vendor.name}'",
+                            commit=False)
+            await audit.record_version("vendor", vendor.id, after, previous=before,
+                                       actor=actor, note="Vendor updated", commit=False)
+            await self.db.commit()
         return VendorResponse.model_validate(vendor)
 
     # ── Delete (soft) ─────────────────────────────────────────
-    async def delete_vendor(self, vendor_id: str) -> dict:
+    async def delete_vendor(self, vendor_id: str, actor=None) -> dict:
         vendor = await self.repo.get_by_id(vendor_id)
         if not vendor:
             raise NotFoundError("Vendor")
 
         await self.repo.soft_delete(vendor)
         logger.info(f"Vendor soft-deleted: {vendor.name} (id={vendor.id})")
+
+        from app.services.audit_service import AuditService
+        from app.models.audit import AuditAction
+        await AuditService(self.db).log(
+            AuditAction.DELETE, "vendor", entity_id=vendor.id,
+            entity_name=vendor.name, actor=actor,
+            summary=f"Vendor '{vendor.name}' deleted",
+        )
         return {"message": f"Vendor '{vendor.name}' deleted successfully"}
 
     # ── Expiring soon ─────────────────────────────────────────
