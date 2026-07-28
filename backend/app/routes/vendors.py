@@ -33,7 +33,7 @@ async def create_vendor(
     db: AsyncSession = Depends(get_db),
 ):
     ctrl = VendorController(db)
-    return await ctrl.create_vendor(data, created_by_id=user.id)
+    return await ctrl.create_vendor(data, created_by_id=user.id, actor=user)
 
 
 # ── List (paginated + filtered) ───────────────────────────────
@@ -119,7 +119,7 @@ async def update_vendor(
     db: AsyncSession = Depends(get_db),
 ):
     ctrl = VendorController(db)
-    return await ctrl.update_vendor(vendor_id, data)
+    return await ctrl.update_vendor(vendor_id, data, actor=user)
 
 
 # ── Delete ────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ async def delete_vendor(
     db: AsyncSession = Depends(get_db),
 ):
     ctrl = VendorController(db)
-    result = await ctrl.delete_vendor(vendor_id)
+    result = await ctrl.delete_vendor(vendor_id, actor=user)
     return SuccessResponse(message=result["message"])
 
 

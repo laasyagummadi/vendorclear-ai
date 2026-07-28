@@ -70,7 +70,7 @@ class Vendor(Base, UUIDMixin, TimestampMixin):
     )
     compliance_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
-    # ── Classification (drives filters + which CompliancePolicy scores this vendor) ─
+    # ── Classification (drives filters + which scoring policy scores this vendor) ─
     category: Mapped[VendorCategory] = mapped_column(
         SAEnum(VendorCategory),
         default=VendorCategory.OTHER,
@@ -92,8 +92,13 @@ class Vendor(Base, UUIDMixin, TimestampMixin):
         "User", foreign_keys=[assigned_analyst_id], lazy="selectin"
     )
 
+    # ── Version assignment & per-vendor config snapshot (from LIGHT) ──
+    assigned_version: Mapped[int] = mapped_column(
+        Integer, default=1, nullable=False, index=True
+    )
+    effective_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
     # ── Diversity certifications (stored as JSON array of strings) ─
-    # e.g. ["MBE", "WBE", "DBE"]
     diversity_types: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
 
     # ── Insurance expiry dates (ISO strings) ──────────────────

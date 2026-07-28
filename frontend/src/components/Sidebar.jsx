@@ -1,4 +1,11 @@
 export default function Sidebar({ page, navigate, user, alertCount, onLogout }) {
+  // Module 4/5 — navigation is gated by role so each user only sees the
+  // sections their permissions actually allow.
+  const perms = user?.permissions || []
+  const isVendorRole = user?.role === 'VENDOR'
+  const canViewAllVendors = !isVendorRole
+  const canViewReports = !isVendorRole
+  const isAdmin = user?.role === 'ADMIN' || user?.is_admin
   return (
     <aside className="sidebar">
       <div className="brand-logo">
@@ -20,12 +27,14 @@ export default function Sidebar({ page, navigate, user, alertCount, onLogout }) 
         </svg>
         Dashboard
       </div>
+      {canViewAllVendors && (
       <div className={`nav-item ${page === 'vendors' || page === 'vendor-detail' ? 'active' : ''}`} onClick={() => navigate('vendors')}>
         <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
         Vendors
       </div>
+      )}
 
       <div className={`nav-item ${page === 'upload' ? 'active' : ''}`} onClick={() => navigate('upload')}>
         <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -34,6 +43,7 @@ export default function Sidebar({ page, navigate, user, alertCount, onLogout }) 
         Upload
       </div>
 
+      {canViewReports && (<>
       <div className="nav-sep" />
       <div className="nav-section">Intelligence</div>
       <div className={`nav-item ${page === 'alerts' ? 'active' : ''}`} onClick={() => navigate('alerts')}>
@@ -61,11 +71,40 @@ export default function Sidebar({ page, navigate, user, alertCount, onLogout }) 
         Analytics
       </div>
 
+      <div className={`nav-item ${page === 'approvals' ? 'active' : ''}`} onClick={() => navigate('approvals')}>
+        <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+        </svg>
+        Approvals
+      </div>
+
+      {(user?.role === 'ADMIN' || user?.role === 'AUDITOR' || user?.is_admin) && (
+      <div className={`nav-item ${page === 'audit' ? 'active' : ''}`} onClick={() => navigate('audit')}>
+        <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/>
+        </svg>
+        Audit Trail
+      </div>
+      )}
+      </>)}
+
+      {(user?.role === 'ADMIN' || user?.is_admin) && (
+        <>
+          <div className="nav-section">Admin</div>
+          <div className={`nav-item ${page === 'admin-settings' ? 'active' : ''}`} onClick={() => navigate('admin-settings')}>
+            <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            Settings
+          </div>
+        </>
+      )}
+
       <div style={{ flex: 1 }} />
       <div className="nav-sep" />
-      <div style={{ padding: 10, background: '#111', borderRadius: 8, marginBottom: 8 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#ccc' }}>{user?.full_name || 'Loading...'}</div>
-        <div style={{ fontSize: 11, color: '#444' }}>{user?.email || ''}</div>
+      <div style={{ padding: 10, background: '#f3f2f1', borderRadius: 8, marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#1b1a19' }}>{user?.full_name || 'Loading...'}</div>
+        <div style={{ fontSize: 11, color: '#a19f9d' }}>{user?.email || ''}</div>
       </div>
       <div className="nav-item" onClick={onLogout}>
         <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

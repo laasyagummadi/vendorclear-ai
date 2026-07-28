@@ -3,6 +3,7 @@ import { getToken, setToken, setRefreshToken, setUnauthHandler, api } from './ap
 import Auth from './components/Auth.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import Dashboard from './components/Dashboard.jsx'
+import RoleDashboard from './components/RoleDashboard.jsx'
 import Vendors from './components/Vendors.jsx'
 import VendorDetail from './components/VendorDetail.jsx'
 import AnalysisDetail from './components/AnalysisDetail.jsx'
@@ -10,6 +11,9 @@ import Alerts from './components/Alerts.jsx'
 import Report from './components/Report.jsx'
 import Analytics from './components/Analytics.jsx'
 import Upload from './components/Upload.jsx'
+import AdminSettings from './components/AdminSettings.jsx'
+import Approvals from './components/Approvals.jsx'
+import AuditLog from './components/AuditLog.jsx'
 import Toast from './components/Toast.jsx'
 
 export default function App() {
@@ -39,30 +43,16 @@ export default function App() {
     if (message) toast(message, 'error')
   }
 
-  // NOTE: api.js exposes setUnauthHandler() for exactly this purpose but it
-  // was never called anywhere in the app. That meant every api() call
-  // silently returned null on a 401/403 (expired/invalid token) with no
-  // handler firing — pages just went blank forever with zero indication
-  // the user needed to log back in, and no way back to the login screen
-  // short of a manual page refresh. Now any 401/403 forces a clean logout
-  // with an explanatory toast.
   useEffect(() => {
     setUnauthHandler(() => logout('Your session expired. Please sign in again.'))
   }, [])
 
-  // Restore the user profile on a fresh page load when a token already
-  // exists in localStorage (e.g. after a refresh). Without this, `user`
-  // stayed null forever after a refresh and the sidebar showed "Loading..."
-  // indefinitely even though the session was valid.
   useEffect(() => {
     if (token && !user) {
       api('GET', '/auth/me').then(u => { if (u) setUser(u) }).catch(() => {})
     }
   }, [token])
 
-  // Sidebar alert badge count. Previously setAlertCount was declared but
-  // never called anywhere, so the badge never showed regardless of how
-  // many open alerts existed.
   useEffect(() => {
     if (!token) return
     api('GET', '/alerts?expiry_days=30').then(a => { if (a) setAlertCount(a.total || 0) }).catch(() => {})
@@ -97,7 +87,7 @@ export default function App() {
   function renderPage() {
     const props = { navigate, toast, user }
     switch (page) {
-      case 'dashboard':    return <Dashboard {...props} />
+      case 'dashboard':    return <RoleDashboard {...props} user={user} />
       case 'vendors':      return <Vendors {...props} />
       case 'vendor-detail':return <VendorDetail id={pageParam} {...props} />
       case 'analysis':     return <AnalysisDetail id={pageParam} {...props} />
@@ -105,6 +95,14 @@ export default function App() {
       case 'report':       return <Report {...props} />
       case 'analytics':    return <Analytics {...props} />
       case 'upload':       return <Upload {...props} />
+      case 'approvals':    return <Approvals {...props} user={user} />
+      case 'audit':        return <AuditLog {...props} />
+      case 'admin-settings': {
+        const isAdmin = user?.role === 'ADMIN' || user?.is_admin
+        return isAdmin
+          ? <AdminSettings {...props} />
+          : <div className="empty-state"><p>Admin access required.</p></div>
+      }
       default:             return <Dashboard {...props} />
     }
   }

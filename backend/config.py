@@ -63,6 +63,17 @@ class Settings(BaseSettings):
     # "Edit environment variables for your account" (permanently).
     database_url_env: str = Field(default="", alias="DATABASE_URL")
 
+    # ── SMTP / email notifications (Module 6) ────────────────
+    # Leave smtp_host blank to run in "log only" mode: the app still
+    # generates and records reminders, it just doesn't deliver them.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
+
     # ── Gemini AI ─────────────────────────────────────────────
     gemini_api_key: str = ""
 

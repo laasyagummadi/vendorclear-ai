@@ -126,7 +126,7 @@ export default function Auth({ onLogin }) {
         )}
 
         <div style={{ marginTop: 20, textAlign: 'center', fontSize: 11, color: '#2a2a2a' }}>
-          Backend must be running on <span style={{ color: '#444' }}>http://localhost:8000</span>
+          Backend must be running on <span style={{ color: '#a19f9d' }}>http://localhost:8000</span>
         </div>
       </div>
     </div>

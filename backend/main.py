@@ -14,8 +14,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from config import settings
 from app.database import engine, AsyncSessionLocal
 from app.models.base import Base
-from app.routes import auth, vendors
-from app.routes import documents, analysis, dashboard, alerts, policies
+from app.routes import auth, vendors, documents, analysis, dashboard, alerts, config, policies, audit, scoring_policies
 from app.middleware.logging import RequestLoggingMiddleware
 from app.utils.exceptions import register_exception_handlers
 from app.utils.rate_limit import limiter
@@ -38,28 +37,25 @@ logger.add(
     level="INFO",
 )
 
-# ── Rate limiter ──────────────────────────────────────────────
-# (instance now lives in app.utils.rate_limit so route files can use it too)
-
 
 # ── Lifespan ───────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"{settings.app_name} starting — env={settings.app_env}")
     # create_all is idempotent: it only creates tables that don't exist.
-    # This makes a fresh deployment (SQLite file or a brand-new hosted
-    # Postgres/MySQL via DATABASE_URL) work with zero manual steps.
-    # Schema *changes* on an existing production DB still go through
-    # Alembic migrations (alembic upgrade head).
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables verified")
 
-    # Seed a default CompliancePolicy per vendor category if none exists yet,
-    # so dynamic (category-aware) scoring is live immediately rather than
-    # silently falling back to the bootstrap default until an admin visits
-    # the policies screen.
     from app.database import AsyncSessionLocal
+    
+    # 1. Seed Version Configurations
+    from app.services.config_service import ConfigService
+    async with AsyncSessionLocal() as _db:
+        await ConfigService(_db).ensure_seeded()
+        logger.info("Version configurations seeded")
+
+    # 2. Seed Compliance Scoring Policies
     from app.repositories.policy_repository import PolicyRepository
     async with AsyncSessionLocal() as session:
         created = await PolicyRepository(session).seed_defaults_if_missing()
@@ -67,10 +63,7 @@ async def lifespan(app: FastAPI):
         if created:
             logger.info(f"Seeded {len(created)} default compliance policy(ies)")
 
-    # ── Daily vendor alert-email job ─────────────────────────
-    # Runs even if ALERTS_EMAIL_ENABLED/SMTP aren't configured yet —
-    # NotificationService.run() just no-ops in that case (see
-    # EmailService.is_enabled()), so this is safe to leave running.
+    # 3. Daily vendor alert-email job
     scheduler = AsyncIOScheduler()
 
     async def _send_daily_vendor_alerts():
@@ -101,7 +94,10 @@ async def lifespan(app: FastAPI):
 
     yield
     logger.info("Shutting down...")
-    scheduler.shutdown(wait=False)
+    try:
+        scheduler.shutdown(wait=False)
+    except Exception:
+        pass
     await engine.dispose()
 
 
@@ -117,15 +113,11 @@ app = FastAPI(
 )
 
 # ── CORS ─────────────────────────────────────────────────────
-# Dev/SQLite mode: allow all origins for zero-friction local development.
-# Production: restrict to the explicit allow-list from settings.allowed_origins.
-# NOTE: previously this was hardcoded to allow_origins=["*"] unconditionally,
-# which silently ignored settings.allowed_origins even in production. Fixed here.
 if settings.use_sqlite or settings.app_env == "development":
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
-        allow_credentials=False,   # must be False when allow_origins=["*"]
+        allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -152,6 +144,9 @@ app.include_router(analysis.router, prefix=settings.api_v1_prefix)
 app.include_router(dashboard.router, prefix=settings.api_v1_prefix)
 app.include_router(alerts.router, prefix=settings.api_v1_prefix)
 app.include_router(policies.router, prefix=settings.api_v1_prefix)
+app.include_router(config.router, prefix=settings.api_v1_prefix)
+app.include_router(audit.router, prefix=settings.api_v1_prefix)
+app.include_router(scoring_policies.router, prefix=settings.api_v1_prefix)
 
 
 # ── Health ────────────────────────────────────────────────────
@@ -166,11 +161,6 @@ async def health_check():
 
 
 # ── Frontend (production single-service deployment) ──────────
-# If the React app has been built (frontend/dist exists, or the
-# FRONTEND_DIST env var points at a build), serve it directly from
-# this process: one deployable service, same-origin API, no CORS
-# issues. In local dev (Vite on :3000) dist doesn't exist and the
-# plain JSON root below is used instead.
 import os as _os
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -187,10 +177,7 @@ if _os.path.isdir(_FRONTEND_DIST):
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa(full_path: str):
-        """Serve the built SPA; unknown paths fall back to index.html
-        so client-side navigation and refreshes work."""
         candidate = _os.path.normpath(_os.path.join(_FRONTEND_DIST, full_path))
-        # stay inside dist/ (defense against ../ traversal in the URL path)
         if candidate.startswith(_os.path.normpath(_FRONTEND_DIST)) and _os.path.isfile(candidate):
             return FileResponse(candidate)
         return FileResponse(_os.path.join(_FRONTEND_DIST, "index.html"))

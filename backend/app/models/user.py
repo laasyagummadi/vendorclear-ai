@@ -2,8 +2,9 @@
 #  app/models/user.py  —  User ORM model
 # ─────────────────────────────────────────────────────────────
 import enum
+from typing import Optional
 
-from sqlalchemy import String, Boolean, Enum as SAEnum
+from sqlalchemy import String, Boolean, ForeignKey, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDMixin, TimestampMixin
@@ -43,8 +44,17 @@ class User(Base, UUIDMixin, TimestampMixin):
     # creation/update time (see UserRepository) rather than being the
     # source of truth. `role` is the source of truth for permissions.
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
     role: Mapped[UserRole] = mapped_column(
-        SAEnum(UserRole), default=UserRole.ANALYST, nullable=False, index=True
+        SAEnum(UserRole), default=UserRole.VENDOR, nullable=False, index=True
+    )
+
+    # ── Optional link: a VENDOR user → their vendor record ────
+    # When set, this user is a vendor and may only view that vendor's data.
+    vendor_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("vendors.id", ondelete="SET NULL", use_alter=True, name="fk_user_vendor"),
+        nullable=True,
     )
 
     # ── Relationships ─────────────────────────────────────────
@@ -56,4 +66,4 @@ class User(Base, UUIDMixin, TimestampMixin):
     )
 
     def __repr__(self) -> str:
-        return f"<User id={self.id} email={self.email}>"
+        return f"<User id={self.id} email={self.email} role={self.role}>"

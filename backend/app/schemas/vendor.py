@@ -67,6 +67,8 @@ class VendorUpdate(BaseModel):
     region: Optional[str] = None
     insurance_provider: Optional[str] = None
     assigned_analyst_id: Optional[str] = None
+    assigned_version: Optional[int] = None
+    effective_config: Optional[dict] = None
     diversity_types: Optional[List[str]] = None
     gl_expiry: Optional[str] = None
     wc_expiry: Optional[str] = None
@@ -94,6 +96,8 @@ class VendorResponse(BaseModel):
     region: Optional[str] = None
     insurance_provider: Optional[str] = None
     assigned_analyst_id: Optional[str] = None
+    assigned_version: int = 1
+    effective_config: Optional[dict] = None
     diversity_types: Optional[List[str]] = None
     gl_expiry: Optional[str] = None
     wc_expiry: Optional[str] = None
@@ -118,7 +122,7 @@ class VendorFilterParams(BaseModel):
     business_unit: Optional[str] = None
     region: Optional[str] = None
     insurance_provider: Optional[str] = None
-    document_type: Optional[str] = None       # "COI" | "DIVERSITY_CERT" | "UNKNOWN" — vendor has >=1 doc of this type
+    document_type: Optional[str] = None       # "COI" | "DIVERSITY_CERT" | "UNKNOWN"
     assigned_analyst_id: Optional[str] = None
     vendor_type: Optional[VendorType] = None
 

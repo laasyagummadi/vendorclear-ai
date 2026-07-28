@@ -142,7 +142,17 @@ class TestUpdateVendor:
 
 
 class TestDeleteVendor:
-    async def test_soft_delete(self, client: AsyncClient, auth_headers):
+    async def test_soft_delete(self, client: AsyncClient, auth_headers, db_session):
+        from app.models.user import User, UserRole
+        from sqlalchemy import select
+        res = await db_session.execute(select(User).where(User.email == "test@vendorclear.ai"))
+        u = res.scalar_one_or_none()
+        if u:
+            u.role = UserRole.ADMIN
+            u.is_admin = True
+            db_session.add(u)
+            await db_session.commit()
+
         create = await client.post(
             "/api/v1/vendors", json=VENDOR_PAYLOAD, headers=auth_headers
         )
@@ -159,7 +169,17 @@ class TestDeleteVendor:
         ids = [v["id"] for v in list_resp.json()["data"]]
         assert vendor_id not in ids
 
-    async def test_delete_not_found(self, client: AsyncClient, auth_headers):
+    async def test_delete_not_found(self, client: AsyncClient, auth_headers, db_session):
+        from app.models.user import User, UserRole
+        from sqlalchemy import select
+        res = await db_session.execute(select(User).where(User.email == "test@vendorclear.ai"))
+        u = res.scalar_one_or_none()
+        if u:
+            u.role = UserRole.ADMIN
+            u.is_admin = True
+            db_session.add(u)
+            await db_session.commit()
+
         resp = await client.delete(
             "/api/v1/vendors/nonexistent-id", headers=auth_headers
         )

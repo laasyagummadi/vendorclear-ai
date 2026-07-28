@@ -48,6 +48,8 @@ class UserResponse(BaseModel):
     is_active: bool
     is_admin: bool
     role: str
+    vendor_id: Optional[str] = None
+    permissions: list[str] = []
 
     model_config = {"from_attributes": True}
 

@@ -8,6 +8,20 @@ from sqlalchemy.pool import StaticPool
 from main import app
 from app.database import get_db
 from app.models.base import Base
+from app.utils.rate_limit import limiter
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Clear rate-limit counters before each test. Without this, the shared
+    10/min login limit is exhausted partway through the suite by the many
+    tests that log in, causing unrelated 429s. The dedicated rate-limit
+    test still fires enough requests within its own body to trip the limit."""
+    try:
+        limiter.reset()
+    except Exception:
+        pass
+    yield
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -89,6 +103,35 @@ async def registered_user(session_client):
 async def auth_headers(session_client, registered_user):
     resp = await session_client.post("/api/v1/auth/login", json={
         "email": "test@vendorclear.ai",
+        "password": "Secure123",
+    })
+    assert resp.status_code == 200
+    token = resp.json()["access_token"]
+    return {"Authorization": "Bearer " + token}
+
+
+@pytest_asyncio.fixture(scope="session")
+async def vendor_auth_headers(session_client, setup_database):
+    from app.models.user import User, UserRole
+    from app.utils.security import hash_password
+    from sqlalchemy import select
+    email = "vendor-cfg-test@vendorclear.ai"
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.email == email)
+        )
+        existing = result.scalar_one_or_none()
+        if not existing:
+            session.add(User(
+                email=email,
+                full_name="Vendor Config User",
+                hashed_password=hash_password("Secure123"),
+                is_admin=False,
+                role=UserRole.VENDOR,
+            ))
+            await session.commit()
+    resp = await session_client.post("/api/v1/auth/login", json={
+        "email": email,
         "password": "Secure123",
     })
     assert resp.status_code == 200

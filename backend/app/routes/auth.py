@@ -32,6 +32,30 @@ async def get_current_user_id(
     return token_data.user_id
 
 
+# ── Dependency: load the full current user ────────────────────
+async def get_current_user(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.user import User
+    user = await db.get(User, user_id)
+    if not user or not user.is_active:
+        raise AuthenticationError("User not found or inactive")
+    return user
+
+
+# ── Dependency: admin-only guard ──────────────────────────────
+async def require_admin(current_user=Depends(get_current_user)):
+    """Reject non-admin users with 403. Used on every config-management
+    endpoint so vendors can never modify configuration (requirement 6)."""
+    from app.models.user import UserRole
+    is_admin = current_user.role == UserRole.ADMIN or current_user.is_admin
+    if not is_admin:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    return current_user
+
+
 # ── Endpoints ─────────────────────────────────────────────────
 
 @router.post(
@@ -88,7 +112,18 @@ async def get_me(
     db: AsyncSession = Depends(get_db),
 ):
     ctrl = AuthController(db)
-    return await ctrl.get_me(user_id)
+    user = await ctrl.get_me(user_id)
+    # Attach the caller's permission list so the UI can show/hide features in
+    # lockstep with what the API will actually authorise (Module 4).
+    from app.utils.permissions import permissions_for, role_of
+    from app.models.user import User as UserModel
+    db_user = await db.get(UserModel, user_id)
+    if db_user is not None:
+        data = user.model_dump() if hasattr(user, "model_dump") else dict(user)
+        data["permissions"] = permissions_for(db_user)
+        data["role"] = role_of(db_user).value
+        return data
+    return user
 
 
 @router.post(

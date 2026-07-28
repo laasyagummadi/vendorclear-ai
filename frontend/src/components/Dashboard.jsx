@@ -28,7 +28,7 @@ export default function Dashboard({ navigate, toast }) {
             borderColor:['#4ade80','#fbbf24','#f87171'], borderWidth:2 }]
         },
         options: { responsive:true, maintainAspectRatio:false, cutout:'65%',
-          plugins:{ legend:{ position:'bottom', labels:{ color:'#555', font:{size:11}, boxWidth:10, padding:12 } } }
+          plugins:{ legend:{ position:'bottom', labels:{ color:'#605e5c', font:{size:11}, boxWidth:10, padding:12 } } }
         }
       })
     }
@@ -42,8 +42,8 @@ export default function Dashboard({ navigate, toast }) {
         },
         options: { responsive:true, maintainAspectRatio:false,
           plugins:{legend:{display:false}},
-          scales:{ x:{grid:{color:'#111'},ticks:{color:'#555',font:{size:11}}},
-                   y:{grid:{color:'#111'},ticks:{color:'#555',font:{size:11}},beginAtZero:true} }
+          scales:{ x:{grid:{color:'#e1dfdd'},ticks:{color:'#605e5c',font:{size:11}}},
+                   y:{grid:{color:'#e1dfdd'},ticks:{color:'#605e5c',font:{size:11}},beginAtZero:true} }
         }
       })
     }
@@ -77,10 +77,10 @@ export default function Dashboard({ navigate, toast }) {
     return (
       <div>
         <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-          <span style={{ fontSize:12, color:'#555' }}>{label}</span>
+          <span style={{ fontSize:12, color:'#605e5c' }}>{label}</span>
           <span style={{ fontSize:12, color:'#777' }}>{val} <span style={{ color:'#333' }}>({pct}%)</span></span>
         </div>
-        <div style={{ height:4, background:'#111', borderRadius:4 }}>
+        <div style={{ height:4, background:'#f3f2f1', borderRadius:4 }}>
           <div style={{ height:4, background:color, borderRadius:4, width:`${pct}%`, transition:'width .4s' }} />
         </div>
       </div>

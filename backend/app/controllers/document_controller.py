@@ -32,6 +32,17 @@ class DocumentController:
                 detail=f"Vendor {vendor_id} not found.",
             )
 
+        # 1b. Resolve the vendor's effective (version-specific) config.
+        # These thresholds drive the compliance rules below, so two vendors
+        # on different versions can be judged against different requirements.
+        from app.services.config_service import ConfigService
+        from app.config_defaults import VERSION_1_DEFAULTS
+        cfg = await ConfigService(self.db).get_effective_config(vendor)
+        required_gl = cfg.get("required_gl_limit_usd", VERSION_1_DEFAULTS["required_gl_limit_usd"])
+        min_ownership = cfg.get("min_ownership_percent", VERSION_1_DEFAULTS["min_ownership_percent"])
+        min_confidence = cfg.get("min_confidence_score", VERSION_1_DEFAULTS["min_confidence_score"])
+        require_addl_insured = cfg.get("require_additional_insured", VERSION_1_DEFAULTS["require_additional_insured"])
+
         # 2. Save file to disk
         file_path, file_size = await file_storage_service.save_upload(file)
 
@@ -119,11 +130,11 @@ class DocumentController:
                     rule_code="MISSING_GL_LIMIT",
                     message="General liability coverage limit not found.",
                 ))
-            elif gl < 1_000_000:
+            elif gl < required_gl:
                 findings.append(Finding(
                     severity=FindingSeverity.HIGH,
                     rule_code="LOW_GL_LIMIT",
-                    message=f"GL limit ${gl:,.2f} is below the required $1,000,000.",
+                    message=f"GL limit ${gl:,.2f} is below the required ${required_gl:,.0f}.",
                 ))
 
         elif resolved_type == DocumentType.DIVERSITY_CERT:
@@ -157,19 +168,19 @@ class DocumentController:
                     rule_code="MISSING_OWNERSHIP_PERCENT",
                     message="Diverse ownership percentage could not be determined.",
                 ))
-            elif own < 51.0:
+            elif own < min_ownership:
                 findings.append(Finding(
                     severity=FindingSeverity.HIGH,
                     rule_code="LOW_OWNERSHIP_PERCENT",
-                    message=f"Ownership {own}% is below the required 51%.",
+                    message=f"Ownership {own}% is below the required {min_ownership}%.",
                 ))
 
         # Global: low-confidence warning
-        if confidence < 0.7:
+        if confidence < min_confidence:
             findings.append(Finding(
                 severity=FindingSeverity.MEDIUM,
                 rule_code="LOW_CONFIDENCE",
-                message=f"Extraction confidence {confidence:.2f} is below threshold 0.70.",
+                message=f"Extraction confidence {confidence:.2f} is below threshold {min_confidence:.2f}.",
             ))
 
         # 8. Determine verdict
