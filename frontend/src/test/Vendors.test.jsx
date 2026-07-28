@@ -26,7 +26,9 @@ describe('Vendors', () => {
     const fetchMock = mockFetchRoutes([{ match: 'page=1&page_size=100', json: PAGINATED_RESPONSE }])
     render(<Vendors navigate={vi.fn()} toast={vi.fn()} />)
     await waitFor(() => expect(fetchMock).toHaveBeenCalled())
-    const calledUrl = fetchMock.mock.calls[0][0]
+    const vendorCall = fetchMock.mock.calls.find(call => call[0].includes('/vendors') && !call[0].includes('options'))
+    expect(vendorCall).toBeDefined()
+    const calledUrl = vendorCall[0]
     expect(calledUrl).toContain('page=1')
     expect(calledUrl).toContain('page_size=100')
     expect(calledUrl).not.toContain('skip=')

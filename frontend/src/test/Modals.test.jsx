@@ -16,7 +16,9 @@ describe('CreateVendorModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /create vendor/i }))
 
     await waitFor(() => expect(onCreated).toHaveBeenCalled())
-    const url = fetchMock.mock.calls[0][0]
+    const postCall = fetchMock.mock.calls.find(call => call[1]?.method === 'POST')
+    expect(postCall).toBeDefined()
+    const url = postCall[0]
     expect(url.endsWith('/vendors')).toBe(true)
     expect(url.endsWith('/vendors/')).toBe(false)
   })
@@ -56,7 +58,9 @@ describe('EditVendorModal', () => {
     render(<EditVendorModal vendor={VENDOR} onClose={vi.fn()} onUpdated={onUpdated} />)
     fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
     await waitFor(() => expect(onUpdated).toHaveBeenCalled())
-    const [url, opts] = fetchMock.mock.calls[0]
+    const patchCall = fetchMock.mock.calls.find(call => call[1]?.method === 'PATCH')
+    expect(patchCall).toBeDefined()
+    const [url, opts] = patchCall
     expect(url).toContain('/vendors/v1')
     expect(opts.method).toBe('PATCH')
     const body = JSON.parse(opts.body)

@@ -27,6 +27,7 @@ export default function EditVendorModal({ vendor, onClose, onUpdated }) {
     state: vendor?.state || '',
     zip_code: vendor?.zip_code || '',
     status: vendor?.status || 'NEEDS_REVIEW',
+    risk_tier: vendor?.risk_tier || 'LOW',
     category: vendor?.category || 'OTHER',
     vendor_type: vendor?.vendor_type || '',
     business_unit: vendor?.business_unit || '',
@@ -105,7 +106,7 @@ export default function EditVendorModal({ vendor, onClose, onUpdated }) {
               <div className="form-group">
                 <label className="form-label">Category</label>
                 <select className="form-input" value={form.category} onChange={e=>set('category',e.target.value)}>
-                  {(options.category.length?options.category:['CONSTRUCTION','SOFTWARE','ELECTRICAL','OTHER']).map(c => <option key={c} value={c}>{c.charAt(0)+c.slice(1).toLowerCase()}</option>)}
+                  {(options?.category?.length ? options.category : ['CONSTRUCTION','SOFTWARE','ELECTRICAL','OTHER']).map(c => <option key={c} value={c}>{c.charAt(0)+c.slice(1).toLowerCase()}</option>)}
                 </select>
                 <div style={{ fontSize:11, color:'#555', marginTop:4 }}>Risk tier is now calculated automatically from the score — no manual override.</div>
               </div>
@@ -113,7 +114,7 @@ export default function EditVendorModal({ vendor, onClose, onUpdated }) {
                 <label className="form-label">Vendor Type</label>
                 <select className="form-input" value={form.vendor_type} onChange={e=>set('vendor_type',e.target.value)}>
                   <option value="">Unset</option>
-                  {(options.vendor_type.length?options.vendor_type:['SUBCONTRACTOR','SUPPLIER','CONSULTANT','SERVICE_PROVIDER','OTHER']).map(t => <option key={t} value={t}>{t.replace('_',' ')}</option>)}
+                  {(options?.vendor_type?.length ? options.vendor_type : ['SUBCONTRACTOR','SUPPLIER','CONSULTANT','SERVICE_PROVIDER','OTHER']).map(t => <option key={t} value={t}>{t.replace('_',' ')}</option>)}
                 </select>
               </div>
               <div className="form-group">
@@ -132,7 +133,7 @@ export default function EditVendorModal({ vendor, onClose, onUpdated }) {
                 <label className="form-label">Assigned Analyst</label>
                 <select className="form-input" value={form.assigned_analyst_id} onChange={e=>set('assigned_analyst_id',e.target.value)}>
                   <option value="">Unassigned</option>
-                  {options.assigned_analyst.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  {(options?.assigned_analyst || []).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
               <div className="form-group">

@@ -18,7 +18,7 @@ describe('VendorDetail', () => {
       { match: '/dashboard/vendors/v1/score', json: SCORE },
       { match: '/vendors/v1', json: VENDOR },
     ])
-    render(<VendorDetail id="v1" navigate={vi.fn()} toast={vi.fn()} />)
+    render(<VendorDetail id="v1" navigate={vi.fn()} toast={vi.fn()} user={{ role: 'ADMIN' }} />)
     await waitFor(() => expect(screen.getAllByText('Acme Corp').length).toBeGreaterThan(0))
     expect(screen.getByText('82/100')).toBeInTheDocument()
   })
@@ -31,7 +31,7 @@ describe('VendorDetail', () => {
       { match: '/vendors/v1', json: VENDOR },
     ])
     const navigate = vi.fn()
-    render(<VendorDetail id="v1" navigate={navigate} toast={vi.fn()} />)
+    render(<VendorDetail id="v1" navigate={navigate} toast={vi.fn()} user={{ role: 'ADMIN' }} />)
     await waitFor(() => screen.getByText('coi.pdf'))
     fireEvent.click(screen.getByText('coi.pdf'))
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('analysis', 'a1'))
@@ -43,7 +43,7 @@ describe('VendorDetail', () => {
       { match: '/dashboard/vendors/v1/score', json: SCORE },
       { match: '/vendors/v1', json: VENDOR },
     ])
-    render(<VendorDetail id="v1" navigate={vi.fn()} toast={vi.fn()} />)
+    render(<VendorDetail id="v1" navigate={vi.fn()} toast={vi.fn()} user={{ role: 'ADMIN' }} />)
     await waitFor(() => expect(screen.getAllByText('Acme Corp').length).toBeGreaterThan(0))
     expect(() => fireEvent.click(screen.getByText('Edit'))).not.toThrow()
     // the modal's input should be pre-filled from the vendor prop, not blank
