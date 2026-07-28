@@ -6,6 +6,7 @@ export default function Dashboard({ navigate, toast }) {
   const [summary, setSummary] = useState(null)
   const riskRef = useRef(null)
   const statusRef = useRef(null)
+  const healthRef = useRef(null)
   const charts = useRef({})
 
   useEffect(() => {
@@ -46,12 +47,30 @@ export default function Dashboard({ navigate, toast }) {
         }
       })
     }
+    if (healthRef.current) {
+      const gd = summary?.health?.grade_distribution || {}
+      charts.current.health = new Chart(healthRef.current, {
+        type: 'bar',
+        data: { labels:['A','B','C','D','F'],
+          datasets: [{ data:[gd.A||0,gd.B||0,gd.C||0,gd.D||0,gd.F||0],
+            backgroundColor:['#052e16','#0a2e1c','#1c1003','#1c0a03','#1c0a0a'],
+            borderColor:['#4ade80','#86efac','#fbbf24','#fb923c','#f87171'], borderWidth:1.5, borderRadius:6 }]
+        },
+        options: { responsive:true, maintainAspectRatio:false,
+          plugins:{legend:{display:false}},
+          scales:{ x:{grid:{color:'#111'},ticks:{color:'#555',font:{size:11}}},
+                   y:{grid:{color:'#111'},ticks:{color:'#555',font:{size:11}},beginAtZero:true,precision:0} }
+        }
+      })
+    }
     return () => { Object.values(charts.current).forEach(c => { try { c.destroy() } catch(e){} }) }
   }, [summary])
 
   const v = summary?.vendors || {}
   const d = summary?.documents || {}
   const al = summary?.alerts || {}
+  const h = summary?.health || {}
+  const gradeColor = { A:'#4ade80', B:'#86efac', C:'#fbbf24', D:'#fb923c', F:'#f87171' }[h.grade] || '#777'
 
   function ProgressBar({ label, val, total, color }) {
     const pct = total > 0 ? Math.round((val/total)*100) : 0
@@ -101,6 +120,18 @@ export default function Dashboard({ navigate, toast }) {
           <div className="stat-val" style={{ color: (al.total||0)>0?'#fbbf24':'#4ade80' }}>{al.total ?? 0}</div>
           <div className="stat-sub">{al.expiry ?? 0} expiry · {al.compliance ?? 0} compliance</div>
         </div>
+        <div className="stat-box">
+          <div className="stat-label">Escalated</div>
+          <div className="stat-val" style={{ color: (al.escalated_count||0)>0?'#f87171':'#4ade80' }}>{al.escalated_count ?? 0}</div>
+          <div className="stat-sub">need immediate attention</div>
+        </div>
+        <div className="stat-box">
+          <div className="stat-label">Vendor Health Score</div>
+          <div className="stat-val" style={{ color: gradeColor }}>
+            {h.avg_score ?? '—'} <span style={{ fontSize:14 }}>({h.grade ?? 'N/A'})</span>
+          </div>
+          <div className="stat-sub">across {h.vendor_count ?? 0} active vendors</div>
+        </div>
       </div>
 
       <div className="charts-row">
@@ -111,6 +142,10 @@ export default function Dashboard({ navigate, toast }) {
         <div className="card">
           <div style={{ fontSize:14, fontWeight:600, marginBottom:16 }}>Vendor Status Overview</div>
           <div style={{ position:'relative', height:200 }}><canvas ref={statusRef} /></div>
+        </div>
+        <div className="card">
+          <div style={{ fontSize:14, fontWeight:600, marginBottom:16 }}>Health Grade Distribution</div>
+          <div style={{ position:'relative', height:200 }}><canvas ref={healthRef} /></div>
         </div>
       </div>
 

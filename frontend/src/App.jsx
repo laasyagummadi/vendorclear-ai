@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { getToken, setToken, setUnauthHandler, api } from './api.js'
+import { getToken, setToken, setRefreshToken, setUnauthHandler, api } from './api.js'
 import Auth from './components/Auth.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import Dashboard from './components/Dashboard.jsx'
@@ -8,8 +8,9 @@ import VendorDetail from './components/VendorDetail.jsx'
 import AnalysisDetail from './components/AnalysisDetail.jsx'
 import Alerts from './components/Alerts.jsx'
 import Report from './components/Report.jsx'
-import Toast from './components/Toast.jsx'
+import Analytics from './components/Analytics.jsx'
 import Upload from './components/Upload.jsx'
+import Toast from './components/Toast.jsx'
 
 export default function App() {
   const [token, setTokenState] = useState(() => getToken())
@@ -30,6 +31,7 @@ export default function App() {
     if (loggedOutRef.current) return // avoid duplicate toasts from concurrent 401s
     loggedOutRef.current = true
     setToken('')
+    setRefreshToken('')
     setTokenState('')
     setUser(null)
     setPage('dashboard')
@@ -93,15 +95,16 @@ export default function App() {
   }
 
   function renderPage() {
-    const props = { navigate, toast }
+    const props = { navigate, toast, user }
     switch (page) {
       case 'dashboard':    return <Dashboard {...props} />
       case 'vendors':      return <Vendors {...props} />
       case 'vendor-detail':return <VendorDetail id={pageParam} {...props} />
-      case 'upload':       return <Upload {...props} />
       case 'analysis':     return <AnalysisDetail id={pageParam} {...props} />
       case 'alerts':       return <Alerts {...props} />
       case 'report':       return <Report {...props} />
+      case 'analytics':    return <Analytics {...props} />
+      case 'upload':       return <Upload {...props} />
       default:             return <Dashboard {...props} />
     }
   }

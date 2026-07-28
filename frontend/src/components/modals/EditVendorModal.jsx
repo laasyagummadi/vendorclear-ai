@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { api } from '../../api.js'
 
 // NOTE on fixes made here:
@@ -27,13 +27,23 @@ export default function EditVendorModal({ vendor, onClose, onUpdated }) {
     state: vendor?.state || '',
     zip_code: vendor?.zip_code || '',
     status: vendor?.status || 'NEEDS_REVIEW',
-    risk_tier: vendor?.risk_tier || 'MEDIUM',
+    category: vendor?.category || 'OTHER',
+    vendor_type: vendor?.vendor_type || '',
+    business_unit: vendor?.business_unit || '',
+    region: vendor?.region || '',
+    insurance_provider: vendor?.insurance_provider || '',
+    assigned_analyst_id: vendor?.assigned_analyst_id || '',
     gl_expiry: vendor?.gl_expiry || '',
     wc_expiry: vendor?.wc_expiry || '',
     notes: vendor?.notes || '',
   })
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
+  const [options, setOptions] = useState({ category: [], vendor_type: [], assigned_analyst: [] })
+
+  useEffect(() => {
+    api('GET', '/vendors/filters/options').then(o => o && setOptions(o)).catch(() => {})
+  }, [])
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -45,6 +55,7 @@ export default function EditVendorModal({ vendor, onClose, onUpdated }) {
       const payload = { ...form }
       if (!payload.gl_expiry) delete payload.gl_expiry
       if (!payload.wc_expiry) delete payload.wc_expiry
+      Object.keys(payload).forEach(k => { if (payload[k] === '') delete payload[k] })
       const updated = await api('PATCH', `/vendors/${vendor.id}`, payload)
       onUpdated(updated)
     } catch (ex) {
@@ -92,11 +103,36 @@ export default function EditVendorModal({ vendor, onClose, onUpdated }) {
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Risk Tier</label>
-                <select className="form-input" value={form.risk_tier} onChange={e=>set('risk_tier',e.target.value)}>
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
+                <label className="form-label">Category</label>
+                <select className="form-input" value={form.category} onChange={e=>set('category',e.target.value)}>
+                  {(options.category.length?options.category:['CONSTRUCTION','SOFTWARE','ELECTRICAL','OTHER']).map(c => <option key={c} value={c}>{c.charAt(0)+c.slice(1).toLowerCase()}</option>)}
+                </select>
+                <div style={{ fontSize:11, color:'#555', marginTop:4 }}>Risk tier is now calculated automatically from the score — no manual override.</div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Vendor Type</label>
+                <select className="form-input" value={form.vendor_type} onChange={e=>set('vendor_type',e.target.value)}>
+                  <option value="">Unset</option>
+                  {(options.vendor_type.length?options.vendor_type:['SUBCONTRACTOR','SUPPLIER','CONSULTANT','SERVICE_PROVIDER','OTHER']).map(t => <option key={t} value={t}>{t.replace('_',' ')}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Business Unit</label>
+                <input className="form-input" value={form.business_unit} onChange={e=>set('business_unit',e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Region</label>
+                <input className="form-input" value={form.region} onChange={e=>set('region',e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Insurance Provider</label>
+                <input className="form-input" value={form.insurance_provider} onChange={e=>set('insurance_provider',e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Assigned Analyst</label>
+                <select className="form-input" value={form.assigned_analyst_id} onChange={e=>set('assigned_analyst_id',e.target.value)}>
+                  <option value="">Unassigned</option>
+                  {options.assigned_analyst.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
               <div className="form-group">

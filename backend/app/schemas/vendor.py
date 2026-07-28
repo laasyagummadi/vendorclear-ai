@@ -5,7 +5,7 @@ from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, field_validator
 
-from app.models.vendor import VendorStatus, RiskTier
+from app.models.vendor import VendorStatus, RiskTier, VendorCategory, VendorType
 
 
 # ── Create ────────────────────────────────────────────────────
@@ -18,6 +18,12 @@ class VendorCreate(BaseModel):
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
+    category: Optional[VendorCategory] = None
+    vendor_type: Optional[VendorType] = None
+    business_unit: Optional[str] = None
+    region: Optional[str] = None
+    insurance_provider: Optional[str] = None
+    assigned_analyst_id: Optional[str] = None
     diversity_types: Optional[List[str]] = None
     gl_expiry: Optional[str] = None   # YYYY-MM-DD
     wc_expiry: Optional[str] = None
@@ -55,6 +61,12 @@ class VendorUpdate(BaseModel):
     status: Optional[VendorStatus] = None
     risk_tier: Optional[RiskTier] = None
     compliance_score: Optional[float] = None
+    category: Optional[VendorCategory] = None
+    vendor_type: Optional[VendorType] = None
+    business_unit: Optional[str] = None
+    region: Optional[str] = None
+    insurance_provider: Optional[str] = None
+    assigned_analyst_id: Optional[str] = None
     diversity_types: Optional[List[str]] = None
     gl_expiry: Optional[str] = None
     wc_expiry: Optional[str] = None
@@ -76,6 +88,12 @@ class VendorResponse(BaseModel):
     status: VendorStatus
     risk_tier: RiskTier
     compliance_score: Optional[float] = None
+    category: VendorCategory
+    vendor_type: Optional[VendorType] = None
+    business_unit: Optional[str] = None
+    region: Optional[str] = None
+    insurance_provider: Optional[str] = None
+    assigned_analyst_id: Optional[str] = None
     diversity_types: Optional[List[str]] = None
     gl_expiry: Optional[str] = None
     wc_expiry: Optional[str] = None
@@ -94,6 +112,16 @@ class VendorFilterParams(BaseModel):
     risk_tier: Optional[RiskTier] = None
     search: Optional[str] = None        # searches name, email, contact_name
     is_active: Optional[bool] = True
+
+    # ── Advanced filters ────────────────────────────────────────
+    category: Optional[VendorCategory] = None
+    business_unit: Optional[str] = None
+    region: Optional[str] = None
+    insurance_provider: Optional[str] = None
+    document_type: Optional[str] = None       # "COI" | "DIVERSITY_CERT" | "UNKNOWN" — vendor has >=1 doc of this type
+    assigned_analyst_id: Optional[str] = None
+    vendor_type: Optional[VendorType] = None
+
     page: int = 1
     page_size: int = 20
 
@@ -109,6 +137,9 @@ class VendorSummary(BaseModel):
     status: VendorStatus
     risk_tier: RiskTier
     compliance_score: Optional[float] = None
+    category: Optional[VendorCategory] = None
+    business_unit: Optional[str] = None
+    region: Optional[str] = None
     gl_expiry: Optional[str] = None
     wc_expiry: Optional[str] = None
 

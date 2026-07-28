@@ -9,14 +9,18 @@ from slowapi.errors import RateLimitExceeded
 from loguru import logger
 import sys
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
 from config import settings
-from app.database import engine
+from app.database import engine, AsyncSessionLocal
 from app.models.base import Base
 from app.routes import auth, vendors
-from app.routes import documents, analysis, dashboard, alerts
+from app.routes import documents, analysis, dashboard, alerts, policies
 from app.middleware.logging import RequestLoggingMiddleware
 from app.utils.exceptions import register_exception_handlers
 from app.utils.rate_limit import limiter
+from app.models.notification_log import NotificationTrigger
+from app.services.notification_service import NotificationService
 
 # ── Loguru configuration ──────────────────────────────────────
 logger.remove()
@@ -50,8 +54,54 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables verified")
+
+    # Seed a default CompliancePolicy per vendor category if none exists yet,
+    # so dynamic (category-aware) scoring is live immediately rather than
+    # silently falling back to the bootstrap default until an admin visits
+    # the policies screen.
+    from app.database import AsyncSessionLocal
+    from app.repositories.policy_repository import PolicyRepository
+    async with AsyncSessionLocal() as session:
+        created = await PolicyRepository(session).seed_defaults_if_missing()
+        await session.commit()
+        if created:
+            logger.info(f"Seeded {len(created)} default compliance policy(ies)")
+
+    # ── Daily vendor alert-email job ─────────────────────────
+    # Runs even if ALERTS_EMAIL_ENABLED/SMTP aren't configured yet —
+    # NotificationService.run() just no-ops in that case (see
+    # EmailService.is_enabled()), so this is safe to leave running.
+    scheduler = AsyncIOScheduler()
+
+    async def _send_daily_vendor_alerts():
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await NotificationService(session).run(
+                    trigger=NotificationTrigger.SCHEDULED,
+                    expiry_days=settings.alert_expiry_lookahead_days,
+                )
+                logger.info(f"Daily vendor alert email job finished: {result}")
+            except Exception:
+                logger.exception("Daily vendor alert email job failed")
+
+    scheduler.add_job(
+        _send_daily_vendor_alerts,
+        "cron",
+        hour=settings.alert_schedule_hour,
+        minute=0,
+        id="daily_vendor_alerts",
+        replace_existing=True,
+    )
+    scheduler.start()
+    app.state.scheduler = scheduler
+    logger.info(
+        f"Vendor alert scheduler started — runs daily at {settings.alert_schedule_hour:02d}:00 "
+        f"(emails {'enabled' if settings.alerts_email_enabled else 'disabled — set ALERTS_EMAIL_ENABLED=true'})"
+    )
+
     yield
     logger.info("Shutting down...")
+    scheduler.shutdown(wait=False)
     await engine.dispose()
 
 
@@ -101,6 +151,7 @@ app.include_router(documents.router, prefix=settings.api_v1_prefix)
 app.include_router(analysis.router, prefix=settings.api_v1_prefix)
 app.include_router(dashboard.router, prefix=settings.api_v1_prefix)
 app.include_router(alerts.router, prefix=settings.api_v1_prefix)
+app.include_router(policies.router, prefix=settings.api_v1_prefix)
 
 
 # ── Health ────────────────────────────────────────────────────

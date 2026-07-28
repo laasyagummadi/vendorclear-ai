@@ -26,13 +26,12 @@ export default function Sidebar({ page, navigate, user, alertCount, onLogout }) 
         </svg>
         Vendors
       </div>
+
       <div className={`nav-item ${page === 'upload' ? 'active' : ''}`} onClick={() => navigate('upload')}>
         <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="17 8 12 3 7 8" />
-          <line x1="12" y1="3" x2="12" y2="15" />
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
         </svg>
-        Upload Center
+        Upload
       </div>
 
       <div className="nav-sep" />
@@ -54,6 +53,12 @@ export default function Sidebar({ page, navigate, user, alertCount, onLogout }) 
           <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
         </svg>
         Compliance Report
+      </div>
+      <div className={`nav-item ${page === 'analytics' ? 'active' : ''}`} onClick={() => navigate('analytics')}>
+        <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/>
+        </svg>
+        Analytics
       </div>
 
       <div style={{ flex: 1 }} />

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { api } from '../api.js'
 import { analysisBadgeClass } from '../helpers.js'
 
-export default function Upload({ navigate, toast }) {
+export default function Upload({ navigate, toast, user }) {
+  const canUpload = user?.role !== 'AUDITOR'
   const [vendors, setVendors] = useState([])
   const [vendorId, setVendorId] = useState('')
   const [newVendorName, setNewVendorName] = useState('')
@@ -19,9 +20,9 @@ export default function Upload({ navigate, toast }) {
   const dragRef = useRef(null)
 
   useEffect(() => {
-    api('GET', '/vendors?page_size=100')
+    api('GET', '/vendors?page=1&page_size=100')
       .then(res => {
-        const list = res?.items || res?.data || (Array.isArray(res) ? res : [])
+        const list = res?.data || res?.items || (Array.isArray(res) ? res : [])
         setVendors(list)
       })
       .catch(() => setVendors([]))
@@ -284,14 +285,15 @@ export default function Upload({ navigate, toast }) {
               className="btn btn-primary" 
               style={{ justifyContent: 'center', padding: '12px 24px', fontWeight: 600 }}
               onClick={triggerUpload}
-              disabled={loading}
+              disabled={loading || !canUpload}
+              title={!canUpload ? 'Auditor accounts are read-only and cannot upload documents.' : undefined}
             >
               {loading ? (
                 <>
                   <span className="spinner" style={{ marginRight: 8 }} />
                   Processing Document with AI...
                 </>
-              ) : 'Run Upload & AI Compliance Check'}
+              ) : !canUpload ? 'Read-only (Auditor role)' : 'Run Upload & AI Compliance Check'}
             </button>
             
             {uploadError && (

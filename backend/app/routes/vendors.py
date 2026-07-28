@@ -7,13 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.routes.auth import get_current_user_id
+from app.utils.rbac import require_roles
+from app.models.user import User, UserRole
 from app.controllers.vendor_controller import VendorController
 from app.schemas.vendor import (
     VendorCreate, VendorUpdate, VendorResponse,
     VendorFilterParams, VendorSummary,
 )
 from app.schemas.common import PaginatedResponse, SuccessResponse
-from app.models.vendor import VendorStatus, RiskTier
+from app.models.vendor import VendorStatus, RiskTier, VendorCategory, VendorType
 
 router = APIRouter(prefix="/vendors", tags=["vendors"])
 
@@ -27,11 +29,11 @@ router = APIRouter(prefix="/vendors", tags=["vendors"])
 )
 async def create_vendor(
     data: VendorCreate,
-    user_id: str = Depends(get_current_user_id),
+    user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST)),
     db: AsyncSession = Depends(get_db),
 ):
     ctrl = VendorController(db)
-    return await ctrl.create_vendor(data, created_by_id=user_id)
+    return await ctrl.create_vendor(data, created_by_id=user.id)
 
 
 # ── List (paginated + filtered) ───────────────────────────────
@@ -45,6 +47,13 @@ async def list_vendors(
     risk_tier: Optional[RiskTier] = Query(None),
     search: Optional[str] = Query(None, description="Search by name, email, or contact"),
     is_active: Optional[bool] = Query(True),
+    category: Optional[VendorCategory] = Query(None),
+    business_unit: Optional[str] = Query(None),
+    region: Optional[str] = Query(None),
+    insurance_provider: Optional[str] = Query(None),
+    document_type: Optional[str] = Query(None, description="COI | DIVERSITY_CERT | UNKNOWN"),
+    assigned_analyst_id: Optional[str] = Query(None),
+    vendor_type: Optional[VendorType] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     user_id: str = Depends(get_current_user_id),
@@ -55,11 +64,31 @@ async def list_vendors(
         risk_tier=risk_tier,
         search=search,
         is_active=is_active,
+        category=category,
+        business_unit=business_unit,
+        region=region,
+        insurance_provider=insurance_provider,
+        document_type=document_type,
+        assigned_analyst_id=assigned_analyst_id,
+        vendor_type=vendor_type,
         page=page,
         page_size=page_size,
     )
     ctrl = VendorController(db)
     return await ctrl.list_vendors(filters)
+
+
+# ── Filter option lists (for populating dropdowns in the UI) ──
+@router.get(
+    "/filters/options",
+    summary="Distinct values currently in use for each advanced filter field",
+)
+async def filter_options(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    ctrl = VendorController(db)
+    return await ctrl.get_filter_options()
 
 
 # ── Get one ───────────────────────────────────────────────────
@@ -86,7 +115,7 @@ async def get_vendor(
 async def update_vendor(
     vendor_id: str,
     data: VendorUpdate,
-    user_id: str = Depends(get_current_user_id),
+    user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST)),
     db: AsyncSession = Depends(get_db),
 ):
     ctrl = VendorController(db)
@@ -101,7 +130,7 @@ async def update_vendor(
 )
 async def delete_vendor(
     vendor_id: str,
-    user_id: str = Depends(get_current_user_id),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
     db: AsyncSession = Depends(get_db),
 ):
     ctrl = VendorController(db)

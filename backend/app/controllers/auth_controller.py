@@ -18,7 +18,7 @@ from app.utils.security import (
 from app.utils.exceptions import (
     AuthenticationError, ConflictError, AuthorizationError, ValidationError
 )
-from app.models.user import User
+from app.models.user import User, UserRole
 
 
 class AuthController:
@@ -31,10 +31,15 @@ class AuthController:
             raise ConflictError("An account with this email already exists")
 
         hashed = hash_password(data.password)
+        # Public self-registration never grants ADMIN or AUDITOR — those are
+        # assigned by an existing admin. Default to ANALYST (matches prior
+        # behavior where every self-registered user was a regular, non-admin
+        # staff account).
         user = await self.repo.create(
             email=data.email,
             full_name=data.full_name,
             hashed_password=hashed,
+            role=UserRole.ANALYST,
         )
         logger.info(f"New user registered: {user.email}")
         return RegisterResponse(user=UserResponse.model_validate(user))

@@ -1,9 +1,12 @@
 # ─────────────────────────────────────────────────────────────
 #  config.py  —  Application settings (pydantic-settings)
 # ─────────────────────────────────────────────────────────────
+import logging
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator, Field
 from typing import List
+
+logger = logging.getLogger("vendorclear.config")
 
 
 class Settings(BaseSettings):
@@ -45,20 +48,61 @@ class Settings(BaseSettings):
 
     # ── Hosted database (deployment) ──────────────────────────
     # Most hosting platforms (Render, Railway, Fly, Heroku, Neon) provide
-    # a DATABASE_URL env var for their managed database. When set, it
-    # takes priority over both USE_SQLITE and the DB_* MySQL settings.
-    # postgres:// / postgresql:// / mysql:// URLs are all accepted and
-    # normalized to their async drivers automatically.
+    # a DATABASE_URL env var for their managed database. When set (and
+    # non-blank), it takes priority over both USE_SQLITE and the DB_*
+    # MySQL settings. postgres:// / postgresql:// / mysql:// URLs are all
+    # accepted and normalized to their async drivers automatically.
+    #
+    # NOTE: pydantic-settings reads this from the real OS environment
+    # variable DATABASE_URL *in addition to* .env — if you have a stray
+    # DATABASE_URL set in your shell/session/System Environment Variables
+    # (e.g. left over from testing a deployment), it WILL silently win
+    # here even if .env has USE_SQLITE=true. Run this in PowerShell to
+    # check: echo $env:DATABASE_URL  — if that prints anything, remove it
+    # with Remove-Item Env:DATABASE_URL (current session) or via
+    # "Edit environment variables for your account" (permanently).
     database_url_env: str = Field(default="", alias="DATABASE_URL")
 
     # ── Gemini AI ─────────────────────────────────────────────
     gemini_api_key: str = ""
+
+    # ── Email / SMTP (vendor alert notifications) ─────────────
+    # Works with any generic SMTP provider (Gmail, Outlook/Office365,
+    # Zoho, a corporate relay, etc). For Gmail/Outlook you'll typically
+    # need an "app password" rather than your normal login password.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True          # STARTTLS (port 587). Set false + smtp_port=465 for implicit TLS/SSL.
+    smtp_from_email: str = ""          # defaults to smtp_user if left blank
+    smtp_from_name: str = "VendorClear AI"
+
+    # ── Vendor alert notifications ────────────────────────────
+    # Master switch — if false, the scheduled job and manual "Notify
+    # Vendors" endpoint both no-op (useful for local dev without SMTP set up).
+    alerts_email_enabled: bool = False
+    # How many days ahead to scan for expiring insurance when the
+    # scheduler runs (same look-ahead window as the Alerts page default).
+    alert_expiry_lookahead_days: int = 30
+    # Hour of day (0-23, server local time) the daily scheduled job runs.
+    alert_schedule_hour: int = 8
 
     @field_validator("allowed_origins", mode="before")
     @classmethod
     def parse_origins(cls, v):
         if isinstance(v, str):
             return [o.strip() for o in v.split(",")]
+        return v
+
+    @field_validator("database_url_env", mode="before")
+    @classmethod
+    def strip_blank_database_url(cls, v):
+        """Treat a whitespace-only DATABASE_URL as unset, so it can't
+        silently override USE_SQLITE due to a stray blank env var."""
+        if v is None:
+            return ""
+        v = str(v).strip()
         return v
 
     @staticmethod
@@ -107,4 +151,32 @@ class Settings(BaseSettings):
         )
 
 
+def _masked(url: str) -> str:
+    """Mask password/credentials before logging a DB URL."""
+    if "@" in url and "://" in url:
+        scheme, rest = url.split("://", 1)
+        if "@" in rest:
+            creds, host_part = rest.rsplit("@", 1)
+            return f"{scheme}://***:***@{host_part}"
+    return url
+
+
 settings = Settings()
+
+# ── Startup visibility ─────────────────────────────────────────
+# Logs which database this process actually resolved to, and why,
+# so "why is my data missing" can be diagnosed from the console
+# instead of guessing. This is the single most useful line for
+# debugging environment/DB-mismatch issues.
+if settings.database_url_env:
+    _source = "DATABASE_URL env var"
+elif settings.use_sqlite:
+    _source = "USE_SQLITE=true"
+else:
+    _source = "DB_* MySQL settings"
+
+logger.warning(
+    "DB config resolved via %s -> %s", _source, _masked(settings.database_url)
+)
+print(f"[config] Database source: {_source}")
+print(f"[config] Resolved database_url: {_masked(settings.database_url)}")

@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.routes.auth import get_current_user_id
+from app.utils.rbac import require_roles
+from app.models.user import User, UserRole
 from app.controllers.document_controller import DocumentController
 from app.repositories.document_repository import DocumentRepository
 from app.schemas.document import DocumentOut, UploadResponse
@@ -26,7 +28,9 @@ async def upload_document(
     file: UploadFile = File(...),
     doc_type_hint: str = Form(default="AUTO"),
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(get_current_user_id),
+    user: User = Depends(
+        require_roles(UserRole.ADMIN, UserRole.ANALYST, UserRole.VENDOR)
+    ),
 ):
     """Upload a document (COI, Diversity Cert) and trigger AI analysis."""
     controller = DocumentController(db)

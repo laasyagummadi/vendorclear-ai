@@ -4,10 +4,24 @@ import { fmtDate, fmtSize, isExpiring, statusBadgeClass, riskBadgeClass, docType
 import EditVendorModal from './modals/EditVendorModal.jsx'
 import UploadModal from './modals/UploadModal.jsx'
 
-export default function VendorDetail({ id, navigate, toast }) {
+const TIMELINE_COLORS = {
+  VENDOR_CREATED: '#60a5fa',
+  DOCUMENT_UPLOADED: '#a78bfa',
+  AI_ANALYSIS_COMPLETED: '#38bdf8',
+  MANUAL_REVIEW: '#fbbf24',
+  APPROVED: '#4ade80',
+  REJECTED: '#f87171',
+  REMINDER_SENT: '#fb923c',
+  VENDOR_UPDATED: '#94a3b8',
+}
+
+export default function VendorDetail({ id, navigate, toast, user }) {
+  const canEdit = user?.role === 'ADMIN' || user?.role === 'ANALYST'
+  const canUpload = user?.role !== 'AUDITOR'
   const [vendor, setVendor] = useState(null)
   const [docs, setDocs] = useState([])
   const [score, setScore] = useState(null)
+  const [timeline, setTimeline] = useState(null)
   const [showEdit, setShowEdit] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
 
@@ -16,7 +30,8 @@ export default function VendorDetail({ id, navigate, toast }) {
       api('GET', `/vendors/${id}`),
       api('GET', `/vendors/${id}/documents`),
       api('GET', `/dashboard/vendors/${id}/score`),
-    ]).then(([v, d, s]) => { setVendor(v); setDocs(d || []); setScore(s) }).catch(() => {})
+      api('GET', `/dashboard/vendors/${id}/timeline`),
+    ]).then(([v, d, s, t]) => { setVendor(v); setDocs(d || []); setScore(s); setTimeline(t) }).catch(() => {})
   }
 
   useEffect(() => { load() }, [id])
@@ -56,11 +71,15 @@ export default function VendorDetail({ id, navigate, toast }) {
           </div>
         </div>
         <div className="flex gap-2">
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowUpload(true)}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Upload Document
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowEdit(true)}>Edit</button>
+          {canUpload && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowUpload(true)}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Document
+            </button>
+          )}
+          {canEdit && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowEdit(true)}>Edit</button>
+          )}
         </div>
       </div>
 
@@ -70,6 +89,9 @@ export default function VendorDetail({ id, navigate, toast }) {
           <div className="detail-grid">
             {[['Contact', vendor.contact_name],['Email', vendor.email],['Phone', vendor.phone],
               ['City / State', [vendor.city,vendor.state].filter(Boolean).join(', ')],
+              ['Category', vendor.category],['Vendor Type', vendor.vendor_type],
+              ['Business Unit', vendor.business_unit],['Region', vendor.region],
+              ['Insurance Provider', vendor.insurance_provider],
               ['GL Expiry', fmtDate(vendor.gl_expiry)],['WC Expiry', fmtDate(vendor.wc_expiry)]
             ].map(([label, val]) => (
               <div key={label} className="detail-item">
@@ -90,14 +112,20 @@ export default function VendorDetail({ id, navigate, toast }) {
           <div style={{ fontSize:12, color:'#444', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:14 }}>Compliance Score</div>
           <div style={{ fontSize:64, fontWeight:800, letterSpacing:-3, color:gradeColor, lineHeight:1 }}>{grade}</div>
           {totalScore !== null && <div style={{ fontSize:14, color:'#555', marginTop:6 }}>{totalScore}/100</div>}
+          {score?.policy_used && (
+            <div style={{ fontSize:11, color:'#555', marginTop:4 }}>Policy: {score.policy_used}</div>
+          )}
           {score?.breakdown && (
             <div style={{ marginTop:16, width:'100%' }}>
-              {Object.entries(score.breakdown).map(([k,v]) => (
-                <div key={k} style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginBottom:6 }}>
-                  <span style={{ color:'#444' }}>{k.replace(/_/g,' ')}</span>
-                  <span style={{ color:'#666' }}>{v}</span>
-                </div>
-              ))}
+              {Object.entries(score.breakdown).map(([k,v]) => {
+                if (v && typeof v === 'object') return null // nested detail (weights_applied, required_document_types) — skip in the summary view
+                return (
+                  <div key={k} style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginBottom:6 }}>
+                    <span style={{ color:'#444' }}>{k.replace(/_/g,' ')}</span>
+                    <span style={{ color:'#666' }}>{String(v)}</span>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
@@ -126,6 +154,29 @@ export default function VendorDetail({ id, navigate, toast }) {
               ))}
             </tbody>
           </table>
+        )}
+      </div>
+
+      <div className="card" style={{ marginTop:20 }}>
+        <div style={{ fontSize:13, fontWeight:600, color:'#777', marginBottom:14, textTransform:'uppercase', letterSpacing:'.06em' }}>Vendor Timeline</div>
+        {!timeline || (timeline.events || []).length === 0 ? (
+          <div className="empty-state" style={{ padding:'12px 0' }}><p>No timeline events yet.</p></div>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+            {timeline.events.map((ev, i) => (
+              <div key={i} style={{ display:'flex', gap:12, paddingBottom:16, position:'relative' }}>
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                  <div style={{ width:10, height:10, borderRadius:'50%', background:TIMELINE_COLORS[ev.type] || '#888', flexShrink:0, marginTop:3 }} />
+                  {i < timeline.events.length - 1 && <div style={{ width:2, flex:1, background:'#222', marginTop:2 }} />}
+                </div>
+                <div style={{ paddingBottom:2 }}>
+                  <div style={{ fontSize:13, fontWeight:600 }}>{ev.label}</div>
+                  <div style={{ fontSize:12, color:'#666', marginTop:2 }}>{ev.detail}</div>
+                  <div style={{ fontSize:11, color:'#444', marginTop:2 }}>{fmtDate(ev.timestamp)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

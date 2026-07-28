@@ -11,6 +11,7 @@ from app.models.analysis import Analysis, AnalysisStatus
 from app.models.finding import Finding, FindingSeverity
 from app.models.vendor import Vendor, VendorStatus, RiskTier
 from app.services import file_storage_service, ocr_service, gemini_service
+from app.services.compliance_service import ComplianceService
 from app.repositories.document_repository import DocumentRepository
 
 
@@ -67,15 +68,6 @@ class DocumentController:
                 resolved_type = DocumentType.COI
             elif any(k in tl for k in ["diversity", "minority", "mbe", "wbe", "dbe", "ownership"]):
                 resolved_type = DocumentType.DIVERSITY_CERT
-            
-            # Multimodal fallback for type detection if local OCR returned empty text
-            if resolved_type == DocumentType.UNKNOWN and not raw_text.strip():
-                logger.info(f"Empty OCR text, trying Gemini multimodal type detection for {file_path}")
-                detected = await gemini_service.detect_document_type(file_path)
-                if detected == "COI":
-                    resolved_type = DocumentType.COI
-                elif detected == "DIVERSITY_CERT":
-                    resolved_type = DocumentType.DIVERSITY_CERT
 
         document.document_type = resolved_type
         self.db.add(document)
@@ -85,9 +77,9 @@ class DocumentController:
         confidence = 0.0
         try:
             if resolved_type == DocumentType.COI:
-                extracted = await gemini_service.extract_coi(raw_text, file_path)
+                extracted = await gemini_service.extract_coi(raw_text)
             elif resolved_type == DocumentType.DIVERSITY_CERT:
-                extracted = await gemini_service.extract_diversity(raw_text, file_path)
+                extracted = await gemini_service.extract_diversity(raw_text)
             confidence = extracted.get("confidence_score", 0.0)
         except Exception as e:
             logger.error(f"Gemini extraction failed: {e}")
@@ -234,10 +226,56 @@ class DocumentController:
 
         if resolved_type == DocumentType.COI:
             vendor.gl_expiry = extracted.get("expiry_date")
-            if extracted.get("workers_comp_limit_usd"):
+            wc_exp = extracted.get("workers_comp_expiry_date")
+            if wc_exp:
+                vendor.wc_expiry = wc_exp
+            elif extracted.get("workers_comp_limit_usd"):
                 vendor.wc_expiry = extracted.get("expiry_date")
 
+        # Auto-fill vendor profile from whatever the document yielded.
+        # IMPORTANT: only populate fields that are currently empty, so a
+        # human's manual edits are never overwritten by a later upload.
+        def _fill(attr, value):
+            if value and not getattr(vendor, attr, None):
+                setattr(vendor, attr, value)
+
+        _fill("contact_name", extracted.get("contact_name"))
+        _fill("email", extracted.get("email"))
+        _fill("phone", extracted.get("phone"))
+        _fill("address", extracted.get("address"))
+        _fill("city", extracted.get("city"))
+        _fill("state", extracted.get("state"))
+        _fill("zip_code", extracted.get("zip_code"))
+
+        # If the vendor was auto-created with a placeholder name, upgrade it
+        # to the insured/certified business name from the document.
+        insured = extracted.get("insured_name")
+        if insured and (not vendor.name or vendor.name.strip().lower() in {"", "new vendor", "untitled"}):
+            vendor.name = insured
+
+        # Track diversity certification type on the vendor.
+        cert_type = extracted.get("cert_type")
+        if cert_type:
+            existing = list(vendor.diversity_types or [])
+            if cert_type not in existing:
+                existing.append(cert_type)
+                vendor.diversity_types = existing
+
         self.db.add(vendor)
+
+        # 12. Compute and persist the vendor's overall compliance score.
+        # BUG FIX: `Vendor.compliance_score` exists on the model and
+        # `VendorRepository.update_compliance()` exists specifically to set
+        # it, but nothing in this pipeline ever called either — so the
+        # column stayed NULL for every vendor no matter how many documents
+        # were checked/analyzed. Flush first so the score calculation (which
+        # re-queries documents/findings from the DB) sees this analysis's
+        # rows, then persist the result onto the vendor being updated.
+        await self.db.flush()
+        score_data = await ComplianceService(self.db).compute_vendor_score(vendor.id)
+        vendor.compliance_score = score_data.get("total_score")
+        self.db.add(vendor)
+
         await self.db.commit()
 
         # Return with eagerly-loaded findings

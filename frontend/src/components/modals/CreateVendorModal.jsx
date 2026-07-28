@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { api } from '../../api.js'
 
 // NOTE on fixes made here:
@@ -18,10 +18,17 @@ import { api } from '../../api.js'
 export default function CreateVendorModal({ onClose, onCreated }) {
   const [form, setForm] = useState({
     name: '', contact_name: '', email: '', phone: '',
-    address: '', city: '', state: '', zip_code: '', notes: ''
+    address: '', city: '', state: '', zip_code: '', notes: '',
+    category: '', vendor_type: '', business_unit: '', region: '',
+    insurance_provider: '', assigned_analyst_id: '',
   })
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
+  const [options, setOptions] = useState({ category: [], vendor_type: [], assigned_analyst: [] })
+
+  useEffect(() => {
+    api('GET', '/vendors/filters/options').then(o => o && setOptions(o)).catch(() => {})
+  }, [])
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -30,7 +37,9 @@ export default function CreateVendorModal({ onClose, onCreated }) {
     if (!form.name.trim()) { setErr('Vendor name is required'); return }
     setLoading(true); setErr('')
     try {
-      const vendor = await api('POST', '/vendors', form)
+      const payload = { ...form }
+      Object.keys(payload).forEach(k => { if (payload[k] === '') delete payload[k] })
+      const vendor = await api('POST', '/vendors', payload)
       onCreated(vendor)
     } catch (ex) {
       setErr(ex?.data?.error || (ex?.data?.details && ex.data.details[0]?.message) || 'Failed to create vendor')
@@ -73,6 +82,39 @@ export default function CreateVendorModal({ onClose, onCreated }) {
               <div className="form-group">
                 <label className="form-label">State</label>
                 <input className="form-input" value={form.state} onChange={e=>set('state',e.target.value)} placeholder="TX" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Category</label>
+                <select className="form-input" value={form.category} onChange={e=>set('category',e.target.value)}>
+                  <option value="">Select category…</option>
+                  {(options.category.length?options.category:['CONSTRUCTION','SOFTWARE','ELECTRICAL','OTHER']).map(c => <option key={c} value={c}>{c.charAt(0)+c.slice(1).toLowerCase()}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Vendor Type</label>
+                <select className="form-input" value={form.vendor_type} onChange={e=>set('vendor_type',e.target.value)}>
+                  <option value="">Select type…</option>
+                  {(options.vendor_type.length?options.vendor_type:['SUBCONTRACTOR','SUPPLIER','CONSULTANT','SERVICE_PROVIDER','OTHER']).map(t => <option key={t} value={t}>{t.replace('_',' ')}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Business Unit</label>
+                <input className="form-input" value={form.business_unit} onChange={e=>set('business_unit',e.target.value)} placeholder="Field Operations" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Region</label>
+                <input className="form-input" value={form.region} onChange={e=>set('region',e.target.value)} placeholder="Southeast" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Insurance Provider</label>
+                <input className="form-input" value={form.insurance_provider} onChange={e=>set('insurance_provider',e.target.value)} placeholder="Travelers" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Assigned Analyst</label>
+                <select className="form-input" value={form.assigned_analyst_id} onChange={e=>set('assigned_analyst_id',e.target.value)}>
+                  <option value="">Unassigned</option>
+                  {options.assigned_analyst.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
               </div>
               <div className="form-group" style={{ gridColumn:'1/-1' }}>
                 <label className="form-label">Address</label>

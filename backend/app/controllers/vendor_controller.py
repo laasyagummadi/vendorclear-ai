@@ -6,17 +6,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
 from app.repositories.vendor_repository import VendorRepository
+from app.repositories.user_repository import UserRepository
 from app.schemas.vendor import (
     VendorCreate, VendorUpdate, VendorResponse,
     VendorFilterParams, VendorSummary,
 )
 from app.schemas.common import PaginatedResponse
 from app.utils.exceptions import NotFoundError
+from app.models.vendor import Vendor, VendorCategory, VendorType
+from app.models.document import DocumentType
 
 
 class VendorController:
     def __init__(self, db: AsyncSession):
         self.repo = VendorRepository(db)
+        self.user_repo = UserRepository(db)
 
     # ── Create ────────────────────────────────────────────────
     async def create_vendor(
@@ -74,6 +78,24 @@ class VendorController:
     async def get_expiring_soon(self, days: int = 30) -> list[VendorSummary]:
         vendors = await self.repo.get_expiring_soon(days)
         return [VendorSummary.model_validate(v) for v in vendors]
+
+    # ── Filter dropdown options ───────────────────────────────
+    async def get_filter_options(self) -> dict:
+        business_units = await self.repo.get_distinct_values(Vendor.business_unit)
+        regions = await self.repo.get_distinct_values(Vendor.region)
+        insurance_providers = await self.repo.get_distinct_values(Vendor.insurance_provider)
+        analysts = await self.user_repo.list_active()
+        return {
+            "category": [c.value for c in VendorCategory],
+            "vendor_type": [t.value for t in VendorType],
+            "document_type": [d.value for d in DocumentType],
+            "business_unit": business_units,
+            "region": regions,
+            "insurance_provider": insurance_providers,
+            "assigned_analyst": [
+                {"id": u.id, "name": u.full_name} for u in analysts
+            ],
+        }
 
     # ── Status breakdown (for dashboard) ─────────────────────
     async def get_status_summary(self) -> dict:

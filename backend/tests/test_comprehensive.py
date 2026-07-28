@@ -358,3 +358,107 @@ class TestRateLimiting:
             resp = await client.post("/api/v1/auth/login", json=payload)
             statuses.append(resp.status_code)
         assert 429 in statuses, f"expected a 429 among {statuses}"
+
+
+# ── Recent analyses endpoint (feeds the Upload dashboard) ─────
+class TestRecentAnalyses:
+    async def test_recent_requires_auth(self, client: AsyncClient):
+        resp = await client.get("/api/v1/analyses/recent")
+        assert resp.status_code == 403
+
+    async def test_recent_returns_list_newest_first(self, client: AsyncClient, auth_headers: dict):
+        v = await _create_vendor(client, auth_headers, email="recent@example.com")
+        # upload two documents so there are analyses to list
+        for i in range(2):
+            await client.post(
+                f"/api/v1/vendors/{v['id']}/documents",
+                files={"file": (f"coi{i}.pdf", FAKE_PDF, "application/pdf")},
+                data={"doc_type_hint": "COI"},
+                headers=auth_headers,
+            )
+        resp = await client.get("/api/v1/analyses/recent?limit=5", headers=auth_headers)
+        assert resp.status_code == 200
+        body = resp.json()
+        assert isinstance(body, list)
+        assert len(body) >= 2
+        # every row carries the vendor_id the UI needs to link back
+        assert all(row.get("vendor_id") for row in body)
+
+    async def test_recent_respects_limit(self, client: AsyncClient, auth_headers: dict):
+        resp = await client.get("/api/v1/analyses/recent?limit=1", headers=auth_headers)
+        assert resp.status_code == 200
+        assert len(resp.json()) <= 1
+
+    async def test_recent_route_not_shadowed_by_id_route(self, client: AsyncClient, auth_headers: dict):
+        # 'recent' must hit the list endpoint, not be treated as an analysis id
+        resp = await client.get("/api/v1/analyses/recent", headers=auth_headers)
+        assert resp.status_code == 200
+        assert isinstance(resp.json(), list)
+
+
+# ── Vendor auto-fill from uploaded documents ──────────────────
+class TestVendorAutoFill:
+    """Uploading a document should populate empty vendor-profile fields
+    (contact, email, phone, city/state) from the extracted data, without
+    overwriting any field a human already filled in."""
+
+    def _coi_bytes(self):
+        import docx, io
+        buf = io.BytesIO()
+        d = docx.Document()
+        for line in [
+            "CERTIFICATE OF LIABILITY INSURANCE",
+            "Insured: Riverside Contracting LLC",
+            "123 Riverside Ave, Portland, OR 97201",
+            "Contact: Dana Rivers",
+            "Email: dana@riverside.com",
+            "Phone: (503) 555-0199",
+            "Commercial General Liability Each Occurrence: $2,000,000",
+            "The certificate holder is named as ADDITIONAL INSURED.",
+            "Expiration: 12/31/2028",
+        ]:
+            d.add_paragraph(line)
+        d.save(buf)
+        return buf.getvalue()
+
+    async def test_upload_autofills_empty_vendor_fields(self, client: AsyncClient, auth_headers: dict):
+        pytest.importorskip("docx")
+        # create a genuinely blank vendor (only a name) so there is nothing
+        # for the no-overwrite guard to protect
+        resp = await client.post("/api/v1/vendors", json={"name": "Autofill Blank"}, headers=auth_headers)
+        v = resp.json()
+        await client.post(
+            f"/api/v1/vendors/{v['id']}/documents",
+            files={"file": ("coi.docx", self._coi_bytes(),
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+            data={"doc_type_hint": "COI"},
+            headers=auth_headers,
+        )
+        after = (await client.get(f"/api/v1/vendors/{v['id']}", headers=auth_headers)).json()
+        assert after["contact_name"] == "Dana Rivers"
+        assert after["phone"] == "(503) 555-0199"
+        assert after["city"] == "Portland"
+        assert after["state"] == "OR"
+        assert after["gl_expiry"] is not None
+
+    async def test_autofill_does_not_overwrite_existing_fields(self, client: AsyncClient, auth_headers: dict):
+        pytest.importorskip("docx")
+        # vendor already has a contact name set by a human, but NO city
+        resp = await client.post(
+            "/api/v1/vendors",
+            json={"name": "Preset Contact", "contact_name": "Existing Human Contact"},
+            headers=auth_headers,
+        )
+        v = resp.json()
+        await client.post(
+            f"/api/v1/vendors/{v['id']}/documents",
+            files={"file": ("coi.docx", self._coi_bytes(),
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+            data={"doc_type_hint": "COI"},
+            headers=auth_headers,
+        )
+        after = (await client.get(f"/api/v1/vendors/{v['id']}", headers=auth_headers)).json()
+        # the human-entered value must be preserved, not overwritten by extraction
+        assert after["contact_name"] == "Existing Human Contact"
+        # but a field that WAS empty still gets filled
+        assert after["city"] == "Portland"

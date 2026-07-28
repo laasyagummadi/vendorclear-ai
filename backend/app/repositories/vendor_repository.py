@@ -7,6 +7,7 @@ from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.vendor import Vendor, VendorStatus, RiskTier
+from app.models.document import Document
 from app.schemas.vendor import VendorCreate, VendorUpdate, VendorFilterParams
 
 
@@ -46,6 +47,28 @@ class VendorRepository:
                 )
             )
 
+        # ── Advanced filters ────────────────────────────────────
+        if filters.category:
+            query = query.where(Vendor.category == filters.category)
+        if filters.vendor_type:
+            query = query.where(Vendor.vendor_type == filters.vendor_type)
+        if filters.business_unit:
+            query = query.where(Vendor.business_unit.ilike(f"%{filters.business_unit}%"))
+        if filters.region:
+            query = query.where(Vendor.region.ilike(f"%{filters.region}%"))
+        if filters.insurance_provider:
+            query = query.where(Vendor.insurance_provider.ilike(f"%{filters.insurance_provider}%"))
+        if filters.assigned_analyst_id:
+            query = query.where(Vendor.assigned_analyst_id == filters.assigned_analyst_id)
+        if filters.document_type:
+            # Vendor has at least one document of this type — join + distinct
+            # so a vendor with multiple matching docs doesn't get duplicated.
+            query = (
+                query.join(Document, Document.vendor_id == Vendor.id)
+                .where(Document.document_type == filters.document_type)
+                .distinct()
+            )
+
         # ── Count ─────────────────────────────────────────────
         count_query = select(func.count()).select_from(query.subquery())
         total = (await self.db.execute(count_query)).scalar_one()
@@ -78,6 +101,13 @@ class VendorRepository:
             ).order_by(Vendor.gl_expiry)
         )
         return list(result.scalars().all())
+
+    async def get_distinct_values(self, column) -> List[str]:
+        """Distinct non-null values of a free-text Vendor column, for filter dropdowns."""
+        result = await self.db.execute(
+            select(column).where(column.isnot(None), Vendor.is_active == True).distinct()
+        )
+        return sorted({v for (v,) in result.all() if v})
 
     async def count_by_status(self) -> dict:
         """Returns {status: count} breakdown."""
