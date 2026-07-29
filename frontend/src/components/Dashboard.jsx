@@ -9,7 +9,15 @@ export default function Dashboard({ navigate, toast }) {
   const charts = useRef({})
 
   useEffect(() => {
-    api('GET', '/dashboard/summary').then(setSummary).catch(() => setSummary(null))
+    api('GET', '/dashboard/summary')
+      .then((payload) => {
+        console.log('[Dashboard] /dashboard/summary payload:', payload)
+        setSummary(payload)
+      })
+      .catch((e) => {
+        console.error('[Dashboard] /dashboard/summary error:', e)
+        setSummary(null)
+      })
   }, [])
 
   useEffect(() => {

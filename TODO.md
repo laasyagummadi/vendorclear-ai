@@ -1,0 +1,5 @@
+- [ ] Inspect backend dashboard summary response shape for compliance rate
+- [ ] Inspect frontend Dashboard.jsx compliance-rate rendering
+- [ ] Apply fix to Dashboard.jsx: ensure correct fields + add safe logging for payload/errors
+- [ ] Run frontend build (or start) and verify compliance rate displays
+- [ ] If still missing, inspect network response for /dashboard/summary (401/403/5xx) and adjust token handling
