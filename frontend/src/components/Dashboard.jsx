@@ -6,18 +6,11 @@ export default function Dashboard({ navigate, toast }) {
   const [summary, setSummary] = useState(null)
   const riskRef = useRef(null)
   const statusRef = useRef(null)
+  const healthRef = useRef(null)
   const charts = useRef({})
 
   useEffect(() => {
-    api('GET', '/dashboard/summary')
-      .then((payload) => {
-        console.log('[Dashboard] /dashboard/summary payload:', payload)
-        setSummary(payload)
-      })
-      .catch((e) => {
-        console.error('[Dashboard] /dashboard/summary error:', e)
-        setSummary(null)
-      })
+    api('GET', '/dashboard/summary').then(setSummary).catch(() => setSummary(null))
   }, [])
 
   useEffect(() => {
@@ -29,10 +22,10 @@ export default function Dashboard({ navigate, toast }) {
     if (riskRef.current) {
       charts.current.risk = new Chart(riskRef.current, {
         type: 'doughnut',
-        data: { labels: ['Low','Medium','High','Critical'],
-          datasets: [{ data: [rt.low||0,rt.medium||0,rt.high||0,rt.critical||0],
-            backgroundColor:['#052e16','#1c1003','#1c0a0a','#2a0a0a'],
-            borderColor:['#4ade80','#fbbf24','#f87171','#f43f5e'], borderWidth:2 }]
+        data: { labels: ['Low','Medium','High'],
+          datasets: [{ data: [rt.low||0,rt.medium||0,rt.high||0],
+            backgroundColor:['#052e16','#1c1003','#1c0a0a'],
+            borderColor:['#4ade80','#fbbf24','#f87171'], borderWidth:2 }]
         },
         options: { responsive:true, maintainAspectRatio:false, cutout:'65%',
           plugins:{ legend:{ position:'bottom', labels:{ color:'#555', font:{size:11}, boxWidth:10, padding:12 } } }
@@ -42,15 +35,31 @@ export default function Dashboard({ navigate, toast }) {
     if (statusRef.current) {
       charts.current.status = new Chart(statusRef.current, {
         type: 'bar',
-        data: { labels:['Compliant','Needs Review','Non-Compliant','Pending'],
-          datasets: [{ data:[v.compliant||0,v.needs_review||0,v.non_compliant||0,v.pending||0],
-            backgroundColor:['#052e16','#1c1003','#1c0a0a','#111'],
-            borderColor:['#4ade80','#fbbf24','#f87171','#333'], borderWidth:1.5, borderRadius:6 }]
+        data: { labels:['Compliant','Needs Review','Non-Compliant'],
+          datasets: [{ data:[v.compliant||0,v.needs_review||0,v.non_compliant||0],
+            backgroundColor:['#052e16','#1c1003','#1c0a0a'],
+            borderColor:['#4ade80','#fbbf24','#f87171'], borderWidth:1.5, borderRadius:6 }]
         },
         options: { responsive:true, maintainAspectRatio:false,
           plugins:{legend:{display:false}},
           scales:{ x:{grid:{color:'#111'},ticks:{color:'#555',font:{size:11}}},
                    y:{grid:{color:'#111'},ticks:{color:'#555',font:{size:11}},beginAtZero:true} }
+        }
+      })
+    }
+    if (healthRef.current) {
+      const gd = summary?.health?.grade_distribution || {}
+      charts.current.health = new Chart(healthRef.current, {
+        type: 'bar',
+        data: { labels:['A','B','C','D','F'],
+          datasets: [{ data:[gd.A||0,gd.B||0,gd.C||0,gd.D||0,gd.F||0],
+            backgroundColor:['#052e16','#0a2e1c','#1c1003','#1c0a03','#1c0a0a'],
+            borderColor:['#4ade80','#86efac','#fbbf24','#fb923c','#f87171'], borderWidth:1.5, borderRadius:6 }]
+        },
+        options: { responsive:true, maintainAspectRatio:false,
+          plugins:{legend:{display:false}},
+          scales:{ x:{grid:{color:'#111'},ticks:{color:'#555',font:{size:11}}},
+                   y:{grid:{color:'#111'},ticks:{color:'#555',font:{size:11}},beginAtZero:true,precision:0} }
         }
       })
     }
@@ -60,6 +69,8 @@ export default function Dashboard({ navigate, toast }) {
   const v = summary?.vendors || {}
   const d = summary?.documents || {}
   const al = summary?.alerts || {}
+  const h = summary?.health || {}
+  const gradeColor = { A:'#4ade80', B:'#86efac', C:'#fbbf24', D:'#fb923c', F:'#f87171' }[h.grade] || '#777'
 
   function ProgressBar({ label, val, total, color }) {
     const pct = total > 0 ? Math.round((val/total)*100) : 0
@@ -109,6 +120,18 @@ export default function Dashboard({ navigate, toast }) {
           <div className="stat-val" style={{ color: (al.total||0)>0?'#fbbf24':'#4ade80' }}>{al.total ?? 0}</div>
           <div className="stat-sub">{al.expiry ?? 0} expiry · {al.compliance ?? 0} compliance</div>
         </div>
+        <div className="stat-box">
+          <div className="stat-label">Escalated</div>
+          <div className="stat-val" style={{ color: (al.escalated_count||0)>0?'#f87171':'#4ade80' }}>{al.escalated_count ?? 0}</div>
+          <div className="stat-sub">need immediate attention</div>
+        </div>
+        <div className="stat-box">
+          <div className="stat-label">Vendor Health Score</div>
+          <div className="stat-val" style={{ color: gradeColor }}>
+            {h.avg_score ?? '—'} <span style={{ fontSize:14 }}>({h.grade ?? 'N/A'})</span>
+          </div>
+          <div className="stat-sub">across {h.vendor_count ?? 0} active vendors</div>
+        </div>
       </div>
 
       <div className="charts-row">
@@ -119,6 +142,10 @@ export default function Dashboard({ navigate, toast }) {
         <div className="card">
           <div style={{ fontSize:14, fontWeight:600, marginBottom:16 }}>Vendor Status Overview</div>
           <div style={{ position:'relative', height:200 }}><canvas ref={statusRef} /></div>
+        </div>
+        <div className="card">
+          <div style={{ fontSize:14, fontWeight:600, marginBottom:16 }}>Health Grade Distribution</div>
+          <div style={{ position:'relative', height:200 }}><canvas ref={healthRef} /></div>
         </div>
       </div>
 
@@ -135,9 +162,9 @@ export default function Dashboard({ navigate, toast }) {
           <div style={{ fontSize:14, fontWeight:600, marginBottom:16 }}>Quick Actions</div>
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             <button className="btn btn-ghost" style={{ justifyContent:'flex-start' }}
-              onClick={() => { navigate('upload') }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-              Upload & Analyze Document
+              onClick={() => { navigate('vendors') }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add New Vendor
             </button>
             <button className="btn btn-ghost" style={{ justifyContent:'flex-start' }} onClick={() => navigate('alerts')}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
