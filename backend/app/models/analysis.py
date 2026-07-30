@@ -1,5 +1,6 @@
 # ─────────────────────────────────────────────────────────────
 #  app/models/analysis.py  —  Analysis ORM model (Hruthi)
+#  Phase 2: added field_confidences for per-field confidence (Module 8)
 # ─────────────────────────────────────────────────────────────
 import enum
 from typing import Optional
@@ -27,6 +28,8 @@ class Analysis(Base, UUIDMixin, TimestampMixin):
     raw_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     extracted_fields: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     confidence_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    # Per-field confidence scores (Module 8) — dict keyed by field name
+    field_confidences: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     status: Mapped[AnalysisStatus] = mapped_column(
         SAEnum(AnalysisStatus), default=AnalysisStatus.NEEDS_REVIEW, nullable=False, index=True
     )

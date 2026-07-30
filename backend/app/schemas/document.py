@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, ConfigDict
 from app.models.document import DocumentType, DocumentStatus
 
@@ -11,6 +12,10 @@ class DocumentOut(BaseModel):
     mime_type: str
     document_type: DocumentType
     status: DocumentStatus
+    # Phase 2 fields
+    file_hash: Optional[str] = None
+    classification_confidence: Optional[float] = None
+    classification_reasoning: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -20,3 +25,4 @@ class DocumentOut(BaseModel):
 class UploadResponse(BaseModel):
     document: DocumentOut
     message: str
+

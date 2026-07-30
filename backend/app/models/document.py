@@ -1,10 +1,11 @@
 # ─────────────────────────────────────────────────────────────
 #  app/models/document.py  —  Document ORM model (Hruthi)
+#  Phase 2: added file_hash for SHA-256 duplicate detection (Module 7)
 # ─────────────────────────────────────────────────────────────
 import enum
 from typing import Optional
 
-from sqlalchemy import String, Integer, ForeignKey, Enum as SAEnum, Text
+from sqlalchemy import String, Integer, Float, ForeignKey, Enum as SAEnum, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDMixin, TimestampMixin
@@ -39,6 +40,11 @@ class Document(Base, UUIDMixin, TimestampMixin):
     status: Mapped[DocumentStatus] = mapped_column(
         SAEnum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False, index=True
     )
+    # SHA-256 hash for duplicate detection (Module 7)
+    file_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    # Classification metadata from AI (Module 2)
+    classification_confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    classification_reasoning: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
     vendor = relationship("Vendor", back_populates="documents")
     analyses = relationship("Analysis", back_populates="document", cascade="all, delete-orphan")

@@ -47,3 +47,20 @@ async def get_analysis(
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found.")
     return _to_out(analysis)
+
+
+from app.schemas.analysis import AnalysisUpdate
+from app.controllers.document_controller import DocumentController
+
+@router.put("/{analysis_id}", response_model=AnalysisOut)
+async def update_analysis(
+    analysis_id: str,
+    data: AnalysisUpdate,
+    db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    """Update analysis fields and trigger compliance re-evaluation."""
+    ctrl = DocumentController(db)
+    update_data = data.model_dump(exclude_unset=True)
+    updated_analysis = await ctrl.update_and_re_evaluate(analysis_id, update_data, user_id)
+    return _to_out(updated_analysis)

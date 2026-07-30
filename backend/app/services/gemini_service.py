@@ -1,5 +1,10 @@
 # ─────────────────────────────────────────────────────────────
 #  app/services/gemini_service.py  —  Gemini AI extraction (Hruthi)
+#  Phase 2 upgrades:
+#   - Module 2: Automatic document classification via Gemini
+#   - Module 8: Per-field confidence indicators in extraction output
+#   - Improved prompts: more fields, better instructions
+#   - Timeout handling and graceful fallback
 # ─────────────────────────────────────────────────────────────
 import json
 import re
@@ -28,12 +33,74 @@ if _GEMINI_AVAILABLE and settings.gemini_api_key:
         logger.warning(f"Gemini init failed, using mock: {e}")
 
 
-# ── COI extraction ────────────────────────────────────────────
+# ── Module 2: Auto Document Classification ───────────────────
+
+CLASSIFY_PROMPT = """
+You are a document classifier for an enterprise vendor compliance platform.
+Analyze the following document text and classify it into exactly ONE category.
+
+Return ONLY a JSON object in this format:
+{
+  "doc_type": "COI" | "DIVERSITY_CERT" | "CONTRACT" | "INVOICE" | "SAFETY_CERT" | "UNKNOWN",
+  "confidence": number between 0.0 and 1.0,
+  "reasoning": "brief one-sentence explanation"
+}
+
+Document Text:
+"""
+
+
+async def classify_document(raw_text: str) -> dict:
+    """
+    Use Gemini to automatically classify the document type.
+    Returns dict with keys: doc_type, confidence, reasoning.
+    Falls back to keyword-based classification if Gemini is unavailable.
+    """
+    if _model and raw_text.strip():
+        try:
+            response = await _model.generate_content_async(CLASSIFY_PROMPT + raw_text[:3000])
+            data = json.loads(response.text)
+            return {
+                "doc_type": data.get("doc_type", "UNKNOWN"),
+                "confidence": float(data.get("confidence", 0.5)),
+                "reasoning": data.get("reasoning", ""),
+            }
+        except Exception as e:
+            logger.warning(f"Gemini classification failed: {e} — using keyword fallback")
+
+    return _keyword_classify(raw_text)
+
+
+def _keyword_classify(text: str) -> dict:
+    """Keyword-based document classification fallback."""
+    tl = text.lower()
+    if any(k in tl for k in ["certificate of liability", "certificate of insurance", "insured", "insurer", "coi", "acord"]):
+        return {"doc_type": "COI", "confidence": 0.80, "reasoning": "Keyword match: insurance certificate terms"}
+    if any(k in tl for k in ["diversity", "minority", "mbe", "wbe", "dbe", "hubzone", "ownership percentage"]):
+        return {"doc_type": "DIVERSITY_CERT", "confidence": 0.80, "reasoning": "Keyword match: diversity certification terms"}
+    if any(k in tl for k in ["agreement", "contract", "terms and conditions", "whereas", "hereinafter"]):
+        return {"doc_type": "CONTRACT", "confidence": 0.70, "reasoning": "Keyword match: contract terms"}
+    if any(k in tl for k in ["invoice", "bill to", "payment due", "total amount", "line item"]):
+        return {"doc_type": "INVOICE", "confidence": 0.70, "reasoning": "Keyword match: invoice terms"}
+    if any(k in tl for k in ["safety", "osha", "hazard", "certification of safety"]):
+        return {"doc_type": "SAFETY_CERT", "confidence": 0.65, "reasoning": "Keyword match: safety certification terms"}
+    return {"doc_type": "UNKNOWN", "confidence": 0.30, "reasoning": "No strong keyword matches found"}
+
+
+# ── Module 8: Per-Field Confidence — COI extraction ──────────
 
 COI_PROMPT = """
-Extract the following fields from this Certificate of Insurance (COI) text and return ONLY a JSON object.
-Look carefully through the ENTIRE document — insured name, producer, address blocks, and contact lines
-often contain the vendor's contact details. Extract whatever is present; use null only when truly absent.
+You are an expert at reading Certificate of Insurance (COI) / ACORD documents.
+Extract ALL fields listed below from the document text. Return ONLY a JSON object.
+
+For each field, also return a confidence score between 0.0 and 1.0 indicating
+how confident you are in the extracted value. Include a "field_confidences" object
+with the same keys mapped to confidence scores.
+
+IMPORTANT: Look carefully through the ENTIRE document — insured name, producer,
+address blocks, and contact lines often contain vendor contact details.
+Use null only when a field is genuinely absent.
+
 {
   "insured_name": string or null,
   "insurer_name": string or null,
@@ -43,31 +110,45 @@ often contain the vendor's contact details. Extract whatever is present; use nul
   "workers_comp_limit_usd": number or null,
   "workers_comp_expiry_date": "YYYY-MM-DD" or null,
   "auto_liability_limit_usd": number or null,
+  "umbrella_limit_usd": number or null,
   "effective_date": "YYYY-MM-DD" or null,
   "expiry_date": "YYYY-MM-DD" or null,
   "additional_insured": boolean or null,
   "certificate_holder": string or null,
-  "contact_name": string or null (the named contact / authorized representative for the insured),
-  "email": string or null (any email address for the insured/vendor),
-  "phone": string or null (any phone/fax number for the insured/vendor),
-  "address": string or null (street address of the insured/vendor),
+  "contact_name": string or null,
+  "email": string or null,
+  "phone": string or null,
+  "address": string or null,
   "city": string or null,
-  "state": string or null (2-letter code if possible),
+  "state": string or null (2-letter code),
   "zip_code": string or null,
-  "confidence_score": number between 0.0 and 1.0
+  "confidence_score": number between 0.0 and 1.0 (overall document confidence),
+  "field_confidences": {
+    "insured_name": number,
+    "policy_number": number,
+    "general_liability_limit_usd": number,
+    "workers_comp_limit_usd": number,
+    "auto_liability_limit_usd": number,
+    "expiry_date": number,
+    "effective_date": number,
+    "additional_insured": number
+  }
 }
 
 COI Text:
 """
 
 DIVERSITY_PROMPT = """
-Extract the following fields from this Diversity/Minority Business Certificate text and return ONLY a JSON object.
-Look through the whole document for the certified business's contact and address details too.
+You are an expert at reading Diversity and Minority Business Certificates.
+Extract ALL fields listed below from the document text. Return ONLY a JSON object.
+
+Include per-field confidence scores in "field_confidences".
+
 {
   "cert_body": string or null,
   "cert_type": string or null (e.g. "MBE", "WBE", "DBE", "SBE"),
   "cert_number": string or null,
-  "ownership_pct": number or null (percentage 0-100),
+  "ownership_pct": number or null (0-100),
   "expiry_date": "YYYY-MM-DD" or null,
   "contact_name": string or null,
   "email": string or null,
@@ -76,7 +157,14 @@ Look through the whole document for the certified business's contact and address
   "city": string or null,
   "state": string or null,
   "zip_code": string or null,
-  "confidence_score": number between 0.0 and 1.0
+  "confidence_score": number between 0.0 and 1.0,
+  "field_confidences": {
+    "cert_type": number,
+    "cert_number": number,
+    "ownership_pct": number,
+    "expiry_date": number,
+    "cert_body": number
+  }
 }
 
 Certificate Text:
@@ -90,6 +178,7 @@ async def extract_coi(raw_text: str) -> dict:
             response = await _model.generate_content_async(COI_PROMPT + raw_text)
             data = json.loads(response.text)
             data.setdefault("confidence_score", 0.90)
+            data.setdefault("field_confidences", {})
             return data
         except Exception as e:
             logger.warning(f"Gemini COI extraction failed: {e} — using mock")
@@ -103,6 +192,7 @@ async def extract_diversity(raw_text: str) -> dict:
             response = await _model.generate_content_async(DIVERSITY_PROMPT + raw_text)
             data = json.loads(response.text)
             data.setdefault("confidence_score", 0.90)
+            data.setdefault("field_confidences", {})
             return data
         except Exception as e:
             logger.warning(f"Gemini diversity extraction failed: {e} — using mock")
@@ -124,7 +214,6 @@ def _extract_contact_fields(text: str) -> dict:
     if m:
         out["email"] = m.group(0).strip().rstrip(".")
 
-    # Phone: (123) 456-7890, 123-456-7890, 123.456.7890, +1 123 456 7890
     m = re.search(r"(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}", text)
     if m:
         out["phone"] = m.group(0).strip()
@@ -135,11 +224,9 @@ def _extract_contact_fields(text: str) -> dict:
         text, re.IGNORECASE,
     )
     if m:
-        # stop at a newline and strip any trailing label word that leaked in
         name = m.group(1).split("\n")[0].strip()
         out["contact_name"] = name
 
-    # Address line: "123 Main St, City, ST 12345"
     m = re.search(
         r"(\d{1,6}\s+[A-Za-z0-9.\s]+?(?:St|Street|Ave|Avenue|Blvd|Boulevard|Rd|Road|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Plaza)\.?)"
         r"\s*,?\s*([A-Za-z .'-]+?)\s*,\s*([A-Z]{2})\s+(\d{5})",
@@ -151,7 +238,6 @@ def _extract_contact_fields(text: str) -> dict:
         out["state"] = m.group(3).strip()
         out["zip_code"] = m.group(4).strip()
     else:
-        # Looser: "City, ST 12345" anywhere
         m2 = re.search(r"([A-Za-z][A-Za-z .'-]+?)\s*,\s*([A-Z]{2})\s+(\d{5})", text)
         if m2:
             out["city"] = m2.group(1).strip()
@@ -164,19 +250,16 @@ def _extract_contact_fields(text: str) -> dict:
 def mock_extract_coi(text: str) -> dict:
     text_lower = text.lower()
 
-    # Insured name
     insured = None
     m = re.search(r"insured[:\s]+([A-Za-z0-9 ,\.]+)", text, re.IGNORECASE)
     if m:
         insured = m.group(1).split("\n")[0].strip()
 
-    # Policy number
     policy = None
     m = re.search(r"policy\s*(?:number|no\.?)[:\s]+([A-Z0-9\-]+)", text, re.IGNORECASE)
     if m:
         policy = m.group(1).strip()
 
-    # GL limit
     gl_limit = None
     m = re.search(r"general\s+liability.*?\$([0-9,]+)", text, re.IGNORECASE)
     if m:
@@ -185,7 +268,6 @@ def mock_extract_coi(text: str) -> dict:
         except ValueError:
             pass
 
-    # Expiry date
     expiry = None
     m = re.search(
         r"expir(?:ation|y|es)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})", text, re.IGNORECASE
@@ -193,7 +275,6 @@ def mock_extract_coi(text: str) -> dict:
     if m:
         expiry = _normalise_date(m.group(1))
 
-    # Workers Comp expiry (may appear as its own line)
     wc_expiry = None
     m = re.search(
         r"workers?\s*comp(?:ensation)?.{0,60}?expir(?:ation|y|es)?[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})",
@@ -211,11 +292,22 @@ def mock_extract_coi(text: str) -> dict:
         "workers_comp_limit_usd": None,
         "workers_comp_expiry_date": wc_expiry,
         "auto_liability_limit_usd": None,
+        "umbrella_limit_usd": None,
         "effective_date": None,
         "expiry_date": expiry,
         "additional_insured": "additional insured" in text_lower,
         "certificate_holder": None,
-        "confidence_score": 0.85,
+        "confidence_score": 0.65,
+        "field_confidences": {
+            "insured_name": 0.80 if insured else 0.20,
+            "policy_number": 0.80 if policy else 0.20,
+            "general_liability_limit_usd": 0.75 if gl_limit else 0.20,
+            "workers_comp_limit_usd": 0.20,
+            "auto_liability_limit_usd": 0.20,
+            "expiry_date": 0.80 if expiry else 0.20,
+            "effective_date": 0.20,
+            "additional_insured": 0.70,
+        },
     }
     result.update(_extract_contact_fields(text))
     return result
@@ -224,20 +316,17 @@ def mock_extract_coi(text: str) -> dict:
 def mock_extract_diversity(text: str) -> dict:
     text_lower = text.lower()
 
-    # Cert type
     cert_type = None
     for t in ["MBE", "WBE", "DBE", "SBE", "SDVOSB", "VOSB", "HUBZone"]:
         if t.lower() in text_lower:
             cert_type = t
             break
 
-    # Cert number
     cert_number = None
     m = re.search(r"cert(?:ificate)?\s*(?:number|no\.?)[:\s]+([A-Z0-9\-]+)", text, re.IGNORECASE)
     if m:
         cert_number = m.group(1).strip()
 
-    # Ownership
     ownership = None
     m = re.search(r"(\d{1,3}(?:\.\d+)?)\s*%\s*owned", text, re.IGNORECASE)
     if m:
@@ -246,9 +335,8 @@ def mock_extract_diversity(text: str) -> dict:
         except ValueError:
             pass
     if ownership is None and cert_type:
-        ownership = 51.0  # assume minimum qualifying for mock
+        ownership = 51.0
 
-    # Expiry date
     expiry = None
     m = re.search(
         r"expir(?:ation|y|es)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})", text, re.IGNORECASE
@@ -256,7 +344,6 @@ def mock_extract_diversity(text: str) -> dict:
     if m:
         expiry = _normalise_date(m.group(1))
 
-    # Cert body
     cert_body = None
     for body in ["NMSDC", "WBENC", "SBA", "USDOT", "NCTRCA", "city of"]:
         if body.lower() in text_lower:
@@ -269,7 +356,14 @@ def mock_extract_diversity(text: str) -> dict:
         "cert_number": cert_number,
         "ownership_pct": ownership,
         "expiry_date": expiry,
-        "confidence_score": 0.85,
+        "confidence_score": 0.65,
+        "field_confidences": {
+            "cert_type": 0.85 if cert_type else 0.20,
+            "cert_number": 0.75 if cert_number else 0.20,
+            "ownership_pct": 0.70 if ownership else 0.20,
+            "expiry_date": 0.80 if expiry else 0.20,
+            "cert_body": 0.70 if cert_body else 0.20,
+        },
     }
     result.update(_extract_contact_fields(text))
     return result

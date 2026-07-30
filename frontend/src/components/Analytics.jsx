@@ -37,19 +37,19 @@ export default function Analytics({ navigate, toast }) {
           datasets: [{
             label: 'Compliance Rate %',
             data: trend.map(t => t.compliance_rate_pct),
-            borderColor: '#4ade80',
-            backgroundColor: 'rgba(74,222,128,0.12)',
+            borderColor: '#0078d4',
+            backgroundColor: 'rgba(0,120,212,0.08)',
             tension: 0.3,
             fill: true,
-            pointBackgroundColor: '#4ade80',
+            pointBackgroundColor: '#0078d4',
           }],
         },
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
-            x: { grid: { color: '#111' }, ticks: { color: '#555', font: { size: 11 } } },
-            y: { grid: { color: '#111' }, ticks: { color: '#555', font: { size: 11 } }, beginAtZero: true, max: 100 },
+            x: { grid: { color: '#f3f2f1' }, ticks: { color: '#605e5c', font: { size: 11 } } },
+            y: { grid: { color: '#f3f2f1' }, ticks: { color: '#605e5c', font: { size: 11 } }, beginAtZero: true, max: 100 },
           },
         },
       })
@@ -64,8 +64,8 @@ export default function Analytics({ navigate, toast }) {
           datasets: [{
             label: 'Compliance Rate %',
             data: regions.map(r => r.compliance_rate_pct),
-            backgroundColor: '#052e16',
-            borderColor: '#4ade80',
+            backgroundColor: '#deecf9',
+            borderColor: '#0078d4',
             borderWidth: 1.5,
             borderRadius: 6,
           }],
@@ -74,8 +74,8 @@ export default function Analytics({ navigate, toast }) {
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
-            x: { grid: { color: '#111' }, ticks: { color: '#555', font: { size: 11 } } },
-            y: { grid: { color: '#111' }, ticks: { color: '#555', font: { size: 11 } }, beginAtZero: true, max: 100 },
+            x: { grid: { color: '#f3f2f1' }, ticks: { color: '#605e5c', font: { size: 11 } } },
+            y: { grid: { color: '#f3f2f1' }, ticks: { color: '#605e5c', font: { size: 11 } }, beginAtZero: true, max: 100 },
           },
         },
       })
@@ -89,13 +89,13 @@ export default function Analytics({ navigate, toast }) {
           labels: ['Low', 'Medium', 'High'],
           datasets: [{
             data: [rf.LOW || 0, rf.MEDIUM || 0, rf.HIGH || 0],
-            backgroundColor: ['#052e16', '#1c1003', '#1c0a0a'],
-            borderColor: ['#4ade80', '#fbbf24', '#f87171'], borderWidth: 2,
+            backgroundColor: ['#dff6dd', '#fff4ce', '#fde7e9'],
+            borderColor: ['#107c10', '#97600a', '#a4262c'], borderWidth: 2,
           }],
         },
         options: {
           responsive: true, maintainAspectRatio: false, cutout: '65%',
-          plugins: { legend: { position: 'bottom', labels: { color: '#555', font: { size: 11 }, boxWidth: 10, padding: 12 } } },
+          plugins: { legend: { position: 'bottom', labels: { color: '#605e5c', font: { size: 11 }, boxWidth: 10, padding: 12 } } },
         },
       })
     }

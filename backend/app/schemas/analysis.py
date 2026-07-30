@@ -24,6 +24,8 @@ class AnalysisOut(BaseModel):
     raw_text: Optional[str] = None
     extracted_fields: Optional[dict] = None
     confidence_score: float
+    # Per-field confidence scores (Module 8)
+    field_confidences: Optional[dict] = None
     status: AnalysisStatus
 
     # COI fields
@@ -50,3 +52,22 @@ class AnalysisOut(BaseModel):
     findings: List[FindingOut] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AnalysisUpdate(BaseModel):
+    insured_name: Optional[str] = None
+    insurer_name: Optional[str] = None
+    policy_number: Optional[str] = None
+    coverage_type: Optional[str] = None
+    general_liability_limit_usd: Optional[float] = None
+    workers_comp_limit_usd: Optional[float] = None
+    auto_liability_limit_usd: Optional[float] = None
+    effective_date: Optional[str] = None
+    expiry_date: Optional[str] = None
+    additional_insured: Optional[bool] = None
+    certificate_holder: Optional[str] = None
+    cert_body: Optional[str] = None
+    cert_type: Optional[str] = None
+    cert_number: Optional[str] = None
+    ownership_pct: Optional[float] = None
+
