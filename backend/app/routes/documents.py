@@ -33,6 +33,7 @@ async def upload_document(
     vendor_id: str,
     file: UploadFile = File(...),
     doc_type_hint: str = Form(default="AUTO"),
+    force: bool = Form(default=False),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(
         require_roles(UserRole.ADMIN, UserRole.ANALYST, UserRole.VENDOR)
@@ -40,6 +41,18 @@ async def upload_document(
 ):
     """Upload a document (COI, Diversity Cert) and trigger AI analysis."""
     controller = DocumentController(db)
+    
+    if not force:
+        file_bytes = await file.read()
+        await file.seek(0)
+        file_hash = compute_bytes_hash(file_bytes)
+        dup = await controller.check_duplicate(vendor_id, file_hash)
+        if dup:
+            raise HTTPException(
+                status_code=409, 
+                detail=f"Duplicate of '{dup['existing_filename']}' uploaded on {dup['uploaded_at'][:10]}"
+            )
+
     analysis = await controller.upload_and_analyze(file, vendor_id, doc_type_hint)
     doc = await DocumentRepository.get_document(db, analysis.document_id)
     return UploadResponse(
@@ -55,6 +68,7 @@ async def bulk_upload_documents(
     vendor_id: str,
     files: List[UploadFile] = File(...),
     doc_type_hint: str = Form(default="AUTO"),
+    force: bool = Form(default=False),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(
         require_roles(UserRole.ADMIN, UserRole.ANALYST, UserRole.VENDOR)
@@ -92,17 +106,18 @@ async def bulk_upload_documents(
             file_hash = compute_bytes_hash(file_bytes)
 
             # Check for duplicate
-            dup = await controller.check_duplicate(vendor_id, file_hash)
-            if dup:
-                file_result["status"] = "duplicate"
-                file_result["duplicate"] = True
-                file_result["document_id"] = dup["existing_document_id"]
-                file_result["error"] = (
-                    f"Duplicate of '{dup['existing_filename']}' "
-                    f"uploaded on {dup['uploaded_at'][:10]}"
-                )
-                results.append(file_result)
-                continue
+            if not force:
+                dup = await controller.check_duplicate(vendor_id, file_hash)
+                if dup:
+                    file_result["status"] = "duplicate"
+                    file_result["duplicate"] = True
+                    file_result["document_id"] = dup["existing_document_id"]
+                    file_result["error"] = (
+                        f"Duplicate of '{dup['existing_filename']}' "
+                        f"uploaded on {dup['uploaded_at'][:10]}"
+                    )
+                    results.append(file_result)
+                    continue
 
             analysis = await controller.upload_and_analyze(file, vendor_id, doc_type_hint)
             doc = await DocumentRepository.get_document(db, analysis.document_id)

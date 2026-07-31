@@ -57,9 +57,8 @@ html,body,#root{height:100%;background:#faf9f8;color:#1b1a19;font-family:'Inter'
 
 /* Buttons */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:none;outline:none}
-.btn-primary{background:#0078d4;color:#ffffff}
-.btn-primary:hover{background:#106ebe;color:#ffffff}
-.btn-primary:disabled{background:#c8c6c4;color:#a19f9d;cursor:not-allowed}
+.btn-primary{background:#1b1a19;color:#faf9f8}
+.btn-primary:hover{background:#1b1a19}
 .btn-ghost{background:transparent;color:#605e5c;border:1px solid #e1dfdd}
 .btn-ghost:hover{background:#f3f2f1;color:#1b1a19;border-color:#a19f9d}
 .btn-danger{background:#fde7e9;color:#a4262c;border:1px solid #fde7e9}
@@ -142,9 +141,6 @@ select.form-input option{background:#ffffff}
 .spinner{display:inline-block;width:16px;height:16px;border:2px solid #a19f9d;border-top-color:#1b1a19;border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .divider{height:1px;background:#f3f2f1;margin:20px 0}
-.pulsing-text{animation:pulse 1.5s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
 /* ── Modal aliases & extras ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -160,3 +156,9 @@ select.form-input option{background:#ffffff}
 .alert-error{background:#fde7e9;border:1px solid #f5c2c7;color:#a4262c}
 .upload-icon{font-size:32px;margin-bottom:10px}
 .upload-zone.dragover{border-color:#605e5c;background:#f3f2f1}
+
+.btn-primary:disabled{background:#c8c6c4;color:#a19f9d;cursor:not-allowed}
+.pulsing-text{animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+

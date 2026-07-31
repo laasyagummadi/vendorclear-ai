@@ -205,7 +205,7 @@ export default function Upload({ navigate, toast, user }) {
   }
 
   // ── Bulk upload (Module 5) ───────────────────────────────
-  const triggerBulkUpload = async () => {
+  const triggerBulkUpload = async (force = false) => {
     if (!vendorId || vendorId === '__new__') { setUploadError('Please select an existing vendor for bulk upload'); return }
     if (bulkFiles.length === 0) { setUploadError('Please select files for bulk upload'); return }
 
@@ -223,6 +223,7 @@ export default function Upload({ navigate, toast, user }) {
     const formData = new FormData()
     bulkFiles.forEach(f => formData.append('files', f))
     formData.append('doc_type_hint', docTypeHint)
+    formData.append('force', force ? 'true' : 'false')
 
     // Update all to uploading
     setBulkResults(prev => prev.map(r => ({ ...r, status: 'uploading', stage: 'Uploading' })))
@@ -433,11 +434,22 @@ export default function Upload({ navigate, toast, user }) {
               <button
                 className="btn btn-primary"
                 style={{ justifyContent: 'center', padding: '12px 24px' }}
-                onClick={triggerBulkUpload}
+                onClick={() => triggerBulkUpload(false)}
                 disabled={bulkLoading || !canUpload || bulkFiles.length === 0}
               >
                 {bulkLoading ? <><span className="spinner" style={{ marginRight: 8 }} />Processing batch...</> : `Upload ${bulkFiles.length} File(s) in Bulk`}
               </button>
+              
+              {bulkResults.some(r => r.duplicate) && (
+                <button
+                  className="btn"
+                  style={{ background: '#97600a', color: '#fff', justifyContent: 'center', padding: '12px 24px', marginTop: '8px' }}
+                  onClick={() => triggerBulkUpload(true)}
+                  disabled={bulkLoading || !canUpload}
+                >
+                  Force Upload Duplicates
+                </button>
+              )}
 
               {/* Processing queue display (Module 6) */}
               {bulkResults.length > 0 && (

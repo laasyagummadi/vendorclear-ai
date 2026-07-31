@@ -88,7 +88,7 @@ class DocumentController:
         allowed_exts = {"pdf", "png", "jpg", "jpeg", "tiff", "tif", "docx"}
         if ext not in allowed_exts:
             raise HTTPException(
-                status_code=400,
+                status_code=415,
                 detail=f"Unsupported file type '.{ext}'. Accepted: PDF, PNG, JPG, JPEG, TIFF, DOCX.",
             )
 

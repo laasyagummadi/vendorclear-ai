@@ -199,6 +199,11 @@ export default function AnalysisDetail({ id, navigate, toast }) {
               <div style={{ fontSize: 12, fontWeight: 600, color: '#605e5c', textTransform: 'uppercase', letterSpacing: '.06em' }}>
                 AI Confidence
               </div>
+              {analysis.confidence_score === 0.65 && (
+                <span className="badge badge-warning" title="Gemini API failed or was rate-limited. Results generated using fallback mock logic.">
+                  ⚠ Fallback Mode
+                </span>
+              )}
             </div>
             <ConfidenceRing score={analysis.confidence_score} />
           </div>

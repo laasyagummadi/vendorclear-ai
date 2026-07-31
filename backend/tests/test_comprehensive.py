@@ -12,7 +12,9 @@ from sqlalchemy import select
 
 pytestmark = pytest.mark.asyncio
 
-FAKE_PDF = b"%PDF-1.4 certificate of insurance general liability $2,000,000 expiration: 01/01/2099"
+import os
+with open(os.path.join(os.path.dirname(__file__), "dummy.pdf"), "rb") as f:
+    FAKE_PDF = f.read()
 
 
 async def _create_vendor(client: AsyncClient, auth_headers: dict, **overrides) -> dict:
